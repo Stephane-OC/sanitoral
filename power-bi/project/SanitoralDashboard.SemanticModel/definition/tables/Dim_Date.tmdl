@@ -1,0 +1,97 @@
+table Dim_Date
+	lineageTag: b304b0a5-d586-4724-a562-da7b76f69cb1
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: Long Date
+		lineageTag: f820a81e-865d-447e-a7eb-955a338eb17a
+		summarizeBy: none
+		sourceColumn: Date
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 221be3e2-c776-45f0-8e64-c60ae2656dc7
+		summarizeBy: sum
+		sourceColumn: Year
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		dataType: string
+		lineageTag: 9c310f7b-20e5-4e6d-8d22-ff8ad459e42e
+		summarizeBy: none
+		sourceColumn: Quarter
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month_Number
+		dataType: int64
+		formatString: 0
+		lineageTag: 8e8211e1-6029-4e4d-8441-25f2d994bf3c
+		summarizeBy: sum
+		sourceColumn: Month_Number
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month_Name
+		dataType: string
+		lineageTag: 8f819294-8773-42db-a09a-f91ea3122ace
+		summarizeBy: none
+		sourceColumn: Month_Name
+		sortByColumn: Month_Number
+
+		changedProperty = IsHidden
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year_Month
+		dataType: string
+		lineageTag: 1203ccd2-d125-4326-a272-c2dfedcc2bbf
+		summarizeBy: none
+		sourceColumn: Year_Month
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Dim_Date = m
+		mode: import
+		source =
+				let
+				    MinimumDate = List.Min(Fact_ProjectPhase[Start_Date]),
+				    MaximumDate = List.Max(Fact_ProjectPhase[Actual_End_Date]),
+				    NumberOfDays = Duration.Days(MaximumDate - MinimumDate) + 1,
+				    DateList = List.Dates(MinimumDate, NumberOfDays, #duration(1, 0, 0, 0)),
+				    DateTable = Table.FromList(DateList, Splitter.SplitByNothing(), {"Date"}),
+				    ChangedType = Table.TransformColumnTypes(DateTable, {{"Date", type date}}),
+				    AddedYear = Table.AddColumn(ChangedType, "Year", each Date.Year([Date]), Int64.Type),
+				    AddedQuarter = Table.AddColumn(AddedYear, "Quarter", each "Q" & Text.From(Date.QuarterOfYear([Date])), type text),
+				    AddedMonthNumber = Table.AddColumn(AddedQuarter, "Month_Number", each Date.Month([Date]), Int64.Type),
+				    AddedMonthName = Table.AddColumn(AddedMonthNumber, "Month_Name", each Date.MonthName([Date], "fr-FR"), type text),
+				    AddedYearMonth = Table.AddColumn(AddedMonthName, "Year_Month", each Date.ToText([Date], "yyyy-MM"), type text)
+				in
+				    AddedYearMonth
+
+	changedProperty = IsHidden
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

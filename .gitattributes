@@ -1,0 +1,20 @@
+# Power BI Project text sources
+*.pbip text eol=lf
+*.pbir text eol=lf
+*.pbism text eol=lf
+*.tmdl text eol=lf
+*.json text eol=lf
+*.dax text eol=lf
+*.pq text eol=lf
+*.md text eol=lf
+
+# Binary deliverables and source documents
+*.pbix binary
+*.pbit binary
+*.pbiviz binary
+*.xlsx binary
+*.docx binary
+*.pptx binary
+*.png binary
+*.webp binary
+

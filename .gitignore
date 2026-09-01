@@ -1,0 +1,17 @@
+# Power BI local and cached files
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+**/.pbi/.temp/
+
+# Microsoft Office temporary files
+~$*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# General temporary files
+*.tmp
+*.temp
+*.bak

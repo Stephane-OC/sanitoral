@@ -1,0 +1,93 @@
+table Dim_Project
+	lineageTag: 6352d983-1b64-42d7-b3df-5d6a6aae9262
+
+	column Project_ID
+		dataType: string
+		lineageTag: a5fad336-e770-48b9-815d-2cc999dae356
+		summarizeBy: none
+		sourceColumn: Project_ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Project_Type
+		dataType: string
+		lineageTag: f88a338b-f90f-4f4d-8a32-2b1f2527cb69
+		summarizeBy: none
+		sourceColumn: Project_Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Country
+		dataType: string
+		lineageTag: 0af4623a-59ed-4fba-8d04-e50fa469f36d
+		summarizeBy: none
+		sourceColumn: Country
+
+		annotation SummarizationSetBy = Automatic
+
+	column Region
+		dataType: string
+		lineageTag: de095d6e-ccf4-4aab-91ff-01a712be80f8
+		summarizeBy: none
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	column Entity_Type
+		dataType: string
+		lineageTag: 605fe53b-360b-48fa-bbc2-0ae8c192f1eb
+		summarizeBy: none
+		sourceColumn: Entity_Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Project_Label
+		dataType: string
+		lineageTag: f3053f9b-3ebc-496a-9bca-becd6003e911
+		summarizeBy: none
+		sourceColumn: Project_Label
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Dim_Project = m
+		mode: import
+		source =
+				let
+				    Source = stg_ProjectType,
+				    MergedLocations = Table.NestedJoin(
+				        Source,
+				        {"Project_ID"},
+				        stg_ProjectLocations,
+				        {"Project_ID"},
+				        "Location",
+				        JoinKind.LeftOuter
+				    ),
+				    ExpandedLocation = Table.ExpandTableColumn(MergedLocations, "Location", {"Country"}, {"Country"}),
+				    MergedCountryProfiles = Table.NestedJoin(
+				        ExpandedLocation,
+				        {"Country"},
+				        stg_CountryProfiles,
+				        {"Country"},
+				        "CountryProfile",
+				        JoinKind.LeftOuter
+				    ),
+				    ExpandedCountryProfile = Table.ExpandTableColumn(
+				        MergedCountryProfiles,
+				        "CountryProfile",
+				        {"Region", "Entity_Type"},
+				        {"Region", "Entity_Type"}
+				    ),
+				    AddedProjectLabel = Table.AddColumn(
+				        ExpandedCountryProfile,
+				        "Project_Label",
+				        each "PRJ-" & [Project_ID],
+				        type text
+				    ),
+				    RemovedDuplicateIds = Table.Distinct(AddedProjectLabel, {"Project_ID"})
+				in
+				    RemovedDuplicateIds
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

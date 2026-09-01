@@ -1,0 +1,287 @@
+expression pDataFilePath = "C:\Users\elawy\Documents\DEV\sanitoral\data\raw\sanitoral_project_data.xlsx" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 9d5d2740-8899-49f3-a0fc-ca0fa5bbe478
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+
+expression src_SanitoralWorkbook =
+		let
+		    Source = Excel.Workbook(File.Contents(pDataFilePath), null, true)
+		in
+		    Source
+	lineageTag: d1c06e97-245d-4ab5-a625-392431291b01
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression fxNormalizeProjectId =
+		(projectId as any) as nullable text =>
+		let
+		    AsText =
+		        if projectId = null
+		        then null
+		        else Text.Trim(Text.From(projectId, "en-US")),
+		
+		    Normalized =
+		        if AsText = null or AsText = ""
+		        then null
+		        else Text.PadStart(AsText, 3, "0")
+		in
+		    Normalized
+	lineageTag: 6161bb77-8b3a-4650-9687-5add4135219c
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Function
+
+expression stg_ProjectPlans =
+		let
+		    RawSheet = src_SanitoralWorkbook{[Item = "Projects_plans", Kind = "Sheet"]}[Data],
+		    SkippedIntroRows = Table.Skip(RawSheet, 2),
+		    PromotedHeaders = Table.PromoteHeaders(SkippedIntroRows, [PromoteAllScalars = true]),
+		    RenamedColumns = Table.RenameColumns(
+		        PromotedHeaders,
+		        {
+		            {"Project ID", "Project_ID"},
+		            {"Start Date", "Start_Date"},
+		            {"Planned_Delivrable", "Planned_Deliverables"}
+		        }
+		    ),
+		    SelectedColumns = Table.SelectColumns(
+		        RenamedColumns,
+		        {"Project_ID", "Phase", "Start_Date", "Planned_Duration", "Planned_Cost", "Planned_Deliverables"}
+		    ),
+		    RemovedBlankRows = Table.SelectRows(
+		        SelectedColumns,
+		        each [Project_ID] <> null and [Phase] <> null
+		    ),
+		    CleanedPhase = Table.TransformColumns(
+		        RemovedBlankRows,
+		        {{"Phase", each Text.Clean(Text.Trim(Text.From(_))), type text}}
+		    ),
+		    NormalizedProjectId = Table.TransformColumns(
+		        CleanedPhase,
+		        {{"Project_ID", each fxNormalizeProjectId(_), type text}}
+		    ),
+		    ChangedTypes = Table.TransformColumnTypes(
+		        NormalizedProjectId,
+		        {
+		            {"Start_Date", type date},
+		            {"Planned_Duration", Int64.Type},
+		            {"Planned_Cost", Int64.Type},
+		            {"Planned_Deliverables", Int64.Type}
+		        },
+		        "en-US"
+		    ),
+		    AddedProjectPhaseKey = Table.AddColumn(
+		        ChangedTypes,
+		        "Project_Phase_Key",
+		        each [Project_ID] & "|" & [Phase],
+		        type text
+		    ),
+		    AddedPlannedEndDate = Table.AddColumn(
+		        AddedProjectPhaseKey,
+		        "Planned_End_Date",
+		        each Date.AddDays([Start_Date], [Planned_Duration]),
+		        type date
+		    ),
+		    RemovedDuplicateKeys = Table.Distinct(AddedPlannedEndDate, {"Project_Phase_Key"})
+		in
+		    RemovedDuplicateKeys
+	lineageTag: 177c0390-3f01-41cd-914e-84e72195cdbb
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression stg_ActualCosts =
+		let
+		    RawSheet = src_SanitoralWorkbook{[Item = "Actual_Costs", Kind = "Sheet"]}[Data],
+		    SkippedIntroRows = Table.Skip(RawSheet, 3),
+		    PromotedHeaders = Table.PromoteHeaders(SkippedIntroRows, [PromoteAllScalars = true]),
+		    RenamedColumns = Table.RenameColumns(PromotedHeaders, {{"Proj_ID", "Project_ID"}}),
+		    SelectedColumns = Table.SelectColumns(RenamedColumns, {"Project_ID", "Phase", "Actual_Cost"}),
+		    RemovedBlankRows = Table.SelectRows(
+		        SelectedColumns,
+		        each [Project_ID] <> null and [Phase] <> null
+		    ),
+		    CleanedPhase = Table.TransformColumns(
+		        RemovedBlankRows,
+		        {{"Phase", each Text.Clean(Text.Trim(Text.From(_))), type text}}
+		    ),
+		    NormalizedProjectId = Table.TransformColumns(
+		        CleanedPhase,
+		        {{"Project_ID", each fxNormalizeProjectId(_), type text}}
+		    ),
+		    ChangedTypes = Table.TransformColumnTypes(NormalizedProjectId, {{"Actual_Cost", Int64.Type}}, "en-US"),
+		    AddedProjectPhaseKey = Table.AddColumn(
+		        ChangedTypes,
+		        "Project_Phase_Key",
+		        each [Project_ID] & "|" & [Phase],
+		        type text
+		    ),
+		    RemovedDuplicateKeys = Table.Distinct(AddedProjectPhaseKey, {"Project_Phase_Key"})
+		in
+		    RemovedDuplicateKeys
+	lineageTag: e4e9940a-4516-4957-a30b-a3b0fe7d453e
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression stg_ActualDuration =
+		let
+		    RawSheet = src_SanitoralWorkbook{[Item = "Actual_Duration", Kind = "Sheet"]}[Data],
+		    SkippedIntroRows = Table.Skip(RawSheet, 5),
+		    PromotedHeaders = Table.PromoteHeaders(SkippedIntroRows, [PromoteAllScalars = true]),
+		    RenamedColumns = Table.RenameColumns(PromotedHeaders, {{"Project", "Project_ID"}}),
+		    SelectedColumns = Table.SelectColumns(RenamedColumns, {"Project_ID", "Phase", "Actual_Duration"}),
+		    RemovedBlankRows = Table.SelectRows(
+		        SelectedColumns,
+		        each [Project_ID] <> null and [Phase] <> null
+		    ),
+		    CleanedPhase = Table.TransformColumns(
+		        RemovedBlankRows,
+		        {{"Phase", each Text.Clean(Text.Trim(Text.From(_))), type text}}
+		    ),
+		    NormalizedProjectId = Table.TransformColumns(
+		        CleanedPhase,
+		        {{"Project_ID", each fxNormalizeProjectId(_), type text}}
+		    ),
+		    ChangedTypes = Table.TransformColumnTypes(NormalizedProjectId, {{"Actual_Duration", Int64.Type}}, "en-US"),
+		    AddedProjectPhaseKey = Table.AddColumn(
+		        ChangedTypes,
+		        "Project_Phase_Key",
+		        each [Project_ID] & "|" & [Phase],
+		        type text
+		    ),
+		    RemovedDuplicateKeys = Table.Distinct(AddedProjectPhaseKey, {"Project_Phase_Key"})
+		in
+		    RemovedDuplicateKeys
+	lineageTag: 34bd6c42-23ab-41bd-9858-b216cbb070fe
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression stg_ActualDeliverables =
+		let
+		    RawSheet = src_SanitoralWorkbook{[Item = "Actual_Delivrable", Kind = "Sheet"]}[Data],
+		    SkippedIntroRows = Table.Skip(RawSheet, 3),
+		    PromotedHeaders = Table.PromoteHeaders(SkippedIntroRows, [PromoteAllScalars = true]),
+		    RenamedColumns = Table.RenameColumns(PromotedHeaders, {{"ID", "Project_ID"}}),
+		    SelectedColumns = Table.SelectColumns(RenamedColumns, {"Project_ID", "Phase", "Actual_Deliverables"}),
+		    RemovedBlankRows = Table.SelectRows(
+		        SelectedColumns,
+		        each [Project_ID] <> null and [Phase] <> null
+		    ),
+		    CleanedPhase = Table.TransformColumns(
+		        RemovedBlankRows,
+		        {{"Phase", each Text.Clean(Text.Trim(Text.From(_))), type text}}
+		    ),
+		    NormalizedProjectId = Table.TransformColumns(
+		        CleanedPhase,
+		        {{"Project_ID", each fxNormalizeProjectId(_), type text}}
+		    ),
+		    ChangedTypes = Table.TransformColumnTypes(NormalizedProjectId, {{"Actual_Deliverables", Int64.Type}}, "en-US"),
+		    AddedProjectPhaseKey = Table.AddColumn(
+		        ChangedTypes,
+		        "Project_Phase_Key",
+		        each [Project_ID] & "|" & [Phase],
+		        type text
+		    ),
+		    RemovedDuplicateKeys = Table.Distinct(AddedProjectPhaseKey, {"Project_Phase_Key"})
+		in
+		    RemovedDuplicateKeys
+	lineageTag: 707642af-0115-4178-8693-cfa825490021
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression stg_ProjectType =
+		let
+		    RawSheet = src_SanitoralWorkbook{[Item = "Project type", Kind = "Sheet"]}[Data],
+		    SkippedIntroRows = Table.Skip(RawSheet, 3),
+		    PromotedHeaders = Table.PromoteHeaders(SkippedIntroRows, [PromoteAllScalars = true]),
+		    RenamedColumns = Table.RenameColumns(PromotedHeaders, {{"Project ID", "Project_ID"}, {"Project Type", "Project_Type"}}),
+		    SelectedColumns = Table.SelectColumns(RenamedColumns, {"Project_ID", "Project_Type"}),
+		    RemovedBlankRows = Table.SelectRows(
+		        SelectedColumns,
+		        each [Project_ID] <> null and [Project_Type] <> null
+		    ),
+		    CleanedProjectType = Table.TransformColumns(
+		        RemovedBlankRows,
+		        {{"Project_Type", each Text.Clean(Text.Trim(Text.From(_))), type text}}
+		    ),
+		    NormalizedProjectId = Table.TransformColumns(
+		        CleanedProjectType,
+		        {{"Project_ID", each fxNormalizeProjectId(_), type text}}
+		    ),
+		    RemovedDuplicateIds = Table.Distinct(NormalizedProjectId, {"Project_ID"})
+		in
+		    RemovedDuplicateIds
+	lineageTag: ee115122-31d0-4ce7-9298-01506e7ba978
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression stg_ProjectLocations =
+		let
+		    RawSheet = src_SanitoralWorkbook{[Item = "Projects_Locations", Kind = "Sheet"]}[Data],
+		    SkippedIntroRows = Table.Skip(RawSheet, 1),
+		    PromotedHeaders = Table.PromoteHeaders(SkippedIntroRows, [PromoteAllScalars = true]),
+		    RenamedColumns = Table.RenameColumns(PromotedHeaders, {{"Project ID", "Project_ID"}}),
+		    SelectedColumns = Table.SelectColumns(RenamedColumns, {"Project_ID", "Country"}),
+		    RemovedBlankRows = Table.SelectRows(
+		        SelectedColumns,
+		        each [Project_ID] <> null and [Country] <> null
+		    ),
+		    CleanedCountry = Table.TransformColumns(
+		        RemovedBlankRows,
+		        {{"Country", each Text.Clean(Text.Trim(Text.From(_))), type text}}
+		    ),
+		    NormalizedProjectId = Table.TransformColumns(
+		        CleanedCountry,
+		        {{"Project_ID", each fxNormalizeProjectId(_), type text}}
+		    ),
+		    RemovedDuplicateIds = Table.Distinct(NormalizedProjectId, {"Project_ID"})
+		in
+		    RemovedDuplicateIds
+	lineageTag: 5f40df5e-b004-4838-baa8-9ca826d072df
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression stg_CountryProfiles =
+		let
+		    RawSheet = src_SanitoralWorkbook{[Item = "Country_Profiles", Kind = "Sheet"]}[Data],
+		    SkippedIntroRows = Table.Skip(RawSheet, 1),
+		    PromotedHeaders = Table.PromoteHeaders(SkippedIntroRows, [PromoteAllScalars = true]),
+		    RenamedColumns = Table.RenameColumns(PromotedHeaders, {{"Type", "Entity_Type"}}),
+		    SelectedColumns = Table.SelectColumns(RenamedColumns, {"Country", "Region", "Entity_Type"}),
+		    RemovedBlankRows = Table.SelectRows(
+		        SelectedColumns,
+		        each [Country] <> null and [Region] <> null and [Entity_Type] <> null
+		    ),
+		    CleanedText = Table.TransformColumns(
+		        RemovedBlankRows,
+		        {
+		            {"Country", each Text.Clean(Text.Trim(Text.From(_))), type text},
+		            {"Region", each Text.Clean(Text.Trim(Text.From(_))), type text},
+		            {"Entity_Type", each Text.Clean(Text.Trim(Text.From(_))), type text}
+		        }
+		    ),
+		    RemovedDuplicateCountries = Table.Distinct(CleanedText, {"Country"})
+		in
+		    RemovedDuplicateCountries
+	lineageTag: 99d7c16e-4acd-46cd-9020-fdb591740adc
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

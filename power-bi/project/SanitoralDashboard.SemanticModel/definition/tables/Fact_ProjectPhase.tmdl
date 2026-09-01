@@ -1,0 +1,186 @@
+table Fact_ProjectPhase
+	lineageTag: ff784367-6850-4ab0-a865-8e803461395c
+
+	column Project_Phase_Key
+		dataType: string
+		lineageTag: ba652ed2-f19a-4a28-9a8b-342c107f782f
+		summarizeBy: none
+		sourceColumn: Project_Phase_Key
+
+		annotation SummarizationSetBy = Automatic
+
+	column Project_ID
+		dataType: string
+		lineageTag: 988b6d26-fa54-4307-a7cd-b6d190597cad
+		summarizeBy: none
+		sourceColumn: Project_ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Phase
+		dataType: string
+		lineageTag: 69186855-67bc-4dff-b2cb-35eee8c3ca48
+		summarizeBy: none
+		sourceColumn: Phase
+
+		annotation SummarizationSetBy = Automatic
+
+	column Start_Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 74c8b5e9-560a-4495-97ee-fe3da619d8c0
+		summarizeBy: none
+		sourceColumn: Start_Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Planned_End_Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: d0c456cf-4850-4300-b6b1-11f1b36978d9
+		summarizeBy: none
+		sourceColumn: Planned_End_Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Actual_End_Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: b349e03e-b892-4d73-be19-043322b4c306
+		summarizeBy: none
+		sourceColumn: Actual_End_Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Planned_Duration
+		dataType: int64
+		formatString: 0
+		lineageTag: f86056ea-d465-495f-91c7-bf233d9c5701
+		summarizeBy: sum
+		sourceColumn: Planned_Duration
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual_Duration
+		dataType: int64
+		formatString: 0
+		lineageTag: b3b911dd-dc72-49c6-a020-e09f62d6b6b4
+		summarizeBy: sum
+		sourceColumn: Actual_Duration
+
+		annotation SummarizationSetBy = Automatic
+
+	column Planned_Cost
+		dataType: int64
+		formatString: 0
+		lineageTag: f521d09a-8c49-4ce0-ab55-5643f1c06c6a
+		summarizeBy: sum
+		sourceColumn: Planned_Cost
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual_Cost
+		dataType: int64
+		formatString: 0
+		lineageTag: e09683ea-9d81-43f1-8313-f9f8133200f7
+		summarizeBy: sum
+		sourceColumn: Actual_Cost
+
+		annotation SummarizationSetBy = Automatic
+
+	column Planned_Deliverables
+		dataType: int64
+		formatString: 0
+		lineageTag: 719a3ef7-4831-49cf-9f4a-02843c50fdd8
+		summarizeBy: sum
+		sourceColumn: Planned_Deliverables
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual_Deliverables
+		dataType: int64
+		formatString: 0
+		lineageTag: 18e686c5-76f8-4436-b58b-9a5183b0ea96
+		summarizeBy: sum
+		sourceColumn: Actual_Deliverables
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Fact_ProjectPhase = m
+		mode: import
+		source =
+				let
+				    Source = stg_ProjectPlans,
+				    MergedCosts = Table.NestedJoin(
+				        Source,
+				        {"Project_Phase_Key"},
+				        stg_ActualCosts,
+				        {"Project_Phase_Key"},
+				        "ActualCosts",
+				        JoinKind.LeftOuter
+				    ),
+				    ExpandedCosts = Table.ExpandTableColumn(MergedCosts, "ActualCosts", {"Actual_Cost"}, {"Actual_Cost"}),
+				    MergedDuration = Table.NestedJoin(
+				        ExpandedCosts,
+				        {"Project_Phase_Key"},
+				        stg_ActualDuration,
+				        {"Project_Phase_Key"},
+				        "ActualDuration",
+				        JoinKind.LeftOuter
+				    ),
+				    ExpandedDuration = Table.ExpandTableColumn(
+				        MergedDuration,
+				        "ActualDuration",
+				        {"Actual_Duration"},
+				        {"Actual_Duration"}
+				    ),
+				    MergedDeliverables = Table.NestedJoin(
+				        ExpandedDuration,
+				        {"Project_Phase_Key"},
+				        stg_ActualDeliverables,
+				        {"Project_Phase_Key"},
+				        "ActualDeliverables",
+				        JoinKind.LeftOuter
+				    ),
+				    ExpandedDeliverables = Table.ExpandTableColumn(
+				        MergedDeliverables,
+				        "ActualDeliverables",
+				        {"Actual_Deliverables"},
+				        {"Actual_Deliverables"}
+				    ),
+				    AddedActualEndDate = Table.AddColumn(
+				        ExpandedDeliverables,
+				        "Actual_End_Date",
+				        each Date.AddDays([Start_Date], [Actual_Duration]),
+				        type date
+				    ),
+				    ReorderedColumns = Table.ReorderColumns(
+				        AddedActualEndDate,
+				        {
+				            "Project_Phase_Key",
+				            "Project_ID",
+				            "Phase",
+				            "Start_Date",
+				            "Planned_End_Date",
+				            "Actual_End_Date",
+				            "Planned_Duration",
+				            "Actual_Duration",
+				            "Planned_Cost",
+				            "Actual_Cost",
+				            "Planned_Deliverables",
+				            "Actual_Deliverables"
+				        }
+				    )
+				in
+				    ReorderedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

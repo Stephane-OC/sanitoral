@@ -1,0 +1,8 @@
+relationship AutoDetected_e75396e0-4531-4940-a6fc-667ff76b4543
+	fromColumn: Fact_ProjectPhase.Project_ID
+	toColumn: Dim_Project.Project_ID
+
+relationship dcf5426c-83c4-3b7a-7816-a1a8b936f1b8
+	fromColumn: Fact_ProjectPhase.Start_Date
+	toColumn: Dim_Date.Date
+

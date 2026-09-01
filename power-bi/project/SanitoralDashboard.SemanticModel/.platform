@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "SanitoralDashboard"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "84dd8e56-546a-4d8f-b943-73d748572b2c"
+  }
+}

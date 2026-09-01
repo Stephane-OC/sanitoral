@@ -1,0 +1,21 @@
+model Model
+	culture: fr-FR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: fr-FR
+	valueFilterBehavior: independent
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_ProTooling = ["DevMode"]
+
+annotation PBI_QueryOrder = ["pDataFilePath","src_SanitoralWorkbook","fxNormalizeProjectId","stg_ProjectPlans","stg_ActualCosts","stg_ActualDuration","stg_ActualDeliverables","stg_ProjectType","stg_ProjectLocations","stg_CountryProfiles","Fact_ProjectPhase","Dim_Project","Dim_Date"]
+
+ref table Fact_ProjectPhase
+ref table Dim_Project
+ref table Dim_Date
+
+ref cultureInfo fr-FR
+

@@ -1,0 +1,24 @@
+{
+  "name": "Sanitoral Light",
+  "dataColors": [
+    "#139FB5",
+    "#7450D8",
+    "#D946A5",
+    "#168A69",
+    "#D79A16",
+    "#D84E68",
+    "#3B82F6",
+    "#8B5CF6"
+  ],
+  "background": "#F6F9FC",
+  "foreground": "#172033",
+  "tableAccent": "#139FB5",
+  "good": "#168A69",
+  "neutral": "#D79A16",
+  "bad": "#D84E68",
+  "maximum": "#139FB5",
+  "center": "#7450D8",
+  "minimum": "#D84E68",
+  "null": "#94A3B8"
+}
+

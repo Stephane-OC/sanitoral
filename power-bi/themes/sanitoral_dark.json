@@ -1,0 +1,24 @@
+{
+  "name": "Sanitoral Dark",
+  "dataColors": [
+    "#2ED3E6",
+    "#8B5CF6",
+    "#EC4899",
+    "#34D399",
+    "#FBBF24",
+    "#FB7185",
+    "#60A5FA",
+    "#A78BFA"
+  ],
+  "background": "#090E1A",
+  "foreground": "#F8FAFC",
+  "tableAccent": "#2ED3E6",
+  "good": "#34D399",
+  "neutral": "#FBBF24",
+  "bad": "#FB7185",
+  "maximum": "#2ED3E6",
+  "center": "#8B5CF6",
+  "minimum": "#FB7185",
+  "null": "#64748B"
+}
+

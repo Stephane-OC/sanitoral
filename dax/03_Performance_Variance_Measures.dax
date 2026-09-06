@@ -1,0 +1,84 @@
+// ============================================================================
+// MESURES : Écarts de performance
+// TABLE   : _Measures
+// OBJECTIF: Comparer les valeurs réelles et prévisionnelles dans le contexte
+//           actif : monde, région, pays, projet ou phase
+// ============================================================================
+
+
+// ---------------------------------------------------------------------------
+// Coûts
+// Un écart positif correspond à un dépassement budgétaire
+// ---------------------------------------------------------------------------
+
+Cost Variance =
+[Actual Cost] - [Planned Cost]
+
+
+Cost Variance % =
+DIVIDE ( [Cost Variance], [Planned Cost] )
+
+
+Cost Performance Status =
+SWITCH (
+    TRUE (),
+    ISBLANK ( [Planned Cost] ), BLANK (),
+    [Cost Variance %] >= 15 / 100, "Alerte",
+    [Cost Variance %] > 0, "Dépassement inférieur à 15 %",
+    "Conforme"
+)
+
+
+// ---------------------------------------------------------------------------
+// Durées
+// Un écart positif correspond à un dépassement du délai planifié
+// ---------------------------------------------------------------------------
+
+Duration Variance =
+[Actual Duration] - [Planned Duration]
+
+
+Duration Variance % =
+DIVIDE ( [Duration Variance], [Planned Duration] )
+
+
+Duration Performance Status =
+SWITCH (
+    TRUE (),
+    ISBLANK ( [Planned Duration] ), BLANK (),
+    [Duration Variance %] >= 15 / 100, "Alerte",
+    [Duration Variance %] > 0, "Retard inférieur à 15 %",
+    "Conforme"
+)
+
+
+// ---------------------------------------------------------------------------
+// Livrables
+// Un écart négatif signifie que moins de livrables ont été produits que prévu
+// ---------------------------------------------------------------------------
+
+Deliverable Variance =
+[Actual Deliverables] - [Planned Deliverables]
+
+
+Deliverable Variance % =
+DIVIDE ( [Deliverable Variance], [Planned Deliverables] )
+
+
+Deliverable Completion Rate =
+DIVIDE ( [Actual Deliverables], [Planned Deliverables] )
+
+
+Deliverable Performance Status =
+SWITCH (
+    TRUE (),
+    ISBLANK ( [Planned Deliverables] ), BLANK (),
+    [Deliverable Variance %] <= -15 / 100, "Alerte",
+    [Deliverable Variance %] < 0, "Manque inférieur à 15 %",
+    "Conforme"
+)
+
+
+// Important : ces mesures indiquent la performance agrégée du contexte actif
+// Les alertes officielles sont néanmoins déterminées phase par phase dans
+// 01_Phase_Calculated_Columns.dax, conformément au brief

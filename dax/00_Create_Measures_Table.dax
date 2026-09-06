@@ -1,0 +1,16 @@
+// ============================================================================
+// TABLE CALCULÉE : _Measures
+// OBJECTIF       : Centraliser toutes les mesures du rapport dans une table
+//                  dédiée afin de garder le modèle lisible
+// CRÉATION       : Modélisation > Nouvelle table
+// ============================================================================
+
+_Measures =
+ROW (
+    "_Placeholder",
+    BLANK ()
+)
+
+// Après la création :
+// 1. Masquer la colonne _Placeholder dans la vue Rapport
+// 2. Créer toutes les mesures suivantes dans cette table

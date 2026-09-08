@@ -1,0 +1,30 @@
+// ============================================================================
+// RÔLES RLS DE DÉMONSTRATION
+// CRÉATION : Modélisation > Gérer les rôles > Nouveau
+// TABLE    : Dim_Project pour les trois rôles
+// IMPORTANT: Coller uniquement l'expression du rôle concerné dans son filtre
+// ============================================================================
+
+
+// ROLE : Director_Global
+// Aucun filtre géographique : accès à tous les projets, régions et pays
+TRUE ()
+
+
+// ROLE : Director_Regional
+// Exemple vérifiable avec une valeur réellement présente dans les données
+Dim_Project[Region] = "Western Europe"
+
+
+// ROLE : Director_Country
+// Exemple vérifiable avec une valeur réellement présente dans les données
+Dim_Project[Country] = "France"
+
+
+// Ces rôles sont statiques et adaptés à la démonstration
+// Aucun compte utilisateur ni adresse e-mail n'est nécessaire pour les tester
+// dans Power BI Desktop avec Modélisation > Voir comme
+//
+// Pour un déploiement réel, une table d'accès associant les utilisateurs à leur
+// région ou pays serait nécessaire avec USERPRINCIPALNAME(). Cette table n'est
+// pas fournie dans les données Sanitoral et n'est donc pas inventée ici

@@ -1,0 +1,84 @@
+// ============================================================================
+// MESURES : Titres, contexte et storytelling
+// TABLE   : _Measures
+// OBJECTIF: Rendre les pages compréhensibles quel que soit le rôle ou le filtre
+// ============================================================================
+
+
+Selected Scope =
+VAR SelectedCountry = SELECTEDVALUE ( Dim_Project[Country] )
+VAR SelectedRegion = SELECTEDVALUE ( Dim_Project[Region] )
+RETURN
+    SWITCH (
+        TRUE (),
+        NOT ISBLANK ( SelectedCountry ), "Pays : " & SelectedCountry,
+        NOT ISBLANK ( SelectedRegion ), "Région : " & SelectedRegion,
+        "Monde"
+    )
+
+
+Visible Scope Level =
+SWITCH (
+    TRUE (),
+    HASONEVALUE ( Dim_Project[Country] ), "Vue pays",
+    HASONEVALUE ( Dim_Project[Region] ), "Vue régionale",
+    "Vue mondiale"
+)
+
+
+Selected Project =
+SELECTEDVALUE ( Dim_Project[Project_Label], "Tous les projets" )
+
+
+Data Period =
+VAR StartDate = [First Project Start Date]
+VAR EndDate = [Last Actual End Date]
+RETURN
+    IF (
+        ISBLANK ( StartDate ) || ISBLANK ( EndDate ),
+        "Période indisponible",
+        FORMAT ( StartDate, "dd/MM/yyyy" )
+            & " – "
+            & FORMAT ( EndDate, "dd/MM/yyyy" )
+    )
+
+
+Executive Narrative =
+VAR ProjectCount = [Total Projects]
+VAR AlertProjectCount = [Projects in Alert]
+VAR AlertRate = [Alert Project Rate]
+RETURN
+    FORMAT ( AlertProjectCount, "0" )
+        & " projet(s) sur "
+        & FORMAT ( ProjectCount, "0" )
+        & " présentent au moins une phase en alerte, soit "
+        & FORMAT ( AlertRate, "0.0 %" )
+        & " du périmètre affiché."
+
+
+Performance Narrative =
+VAR CostVariance = [Cost Variance %]
+VAR DurationVariance = [Duration Variance %]
+VAR DeliverableVariance = [Deliverable Variance %]
+RETURN
+    "Écart coût : "
+        & FORMAT ( CostVariance, "+0.0 %;-0.0 %;0.0 %" )
+        & " • écart durée : "
+        & FORMAT ( DurationVariance, "+0.0 %;-0.0 %;0.0 %" )
+        & " • écart livrables : "
+        & FORMAT ( DeliverableVariance, "+0.0 %;-0.0 %;0.0 %" )
+
+
+// Ce texte est destiné à une info-bulle ou au détail d'un projet sélectionné
+Selected Project Alert Summary =
+VAR ProjectName = [Selected Project]
+VAR PhaseAlertCount = [Alert Phases]
+RETURN
+    IF (
+        ProjectName = "Tous les projets",
+        "Sélectionnez un projet pour afficher le détail de ses phases.",
+        ProjectName
+            & " possède "
+            & FORMAT ( PhaseAlertCount, "0" )
+            & " phase(s) en alerte."
+    )

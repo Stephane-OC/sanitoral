@@ -1,3 +1,7 @@
+# Sanitoral Project Performance Dashboard
+
+![Sanitoral banner](../assets/images/sanitoral_banner.png)
+
 # Préparation des données avec Power Query
 
 Ce dossier contient les scripts de préparation des données du projet **Sanitoral**. Ils sont écrits en **langage M**, le langage de formules utilisé par Power Query dans Power BI.
@@ -50,7 +54,7 @@ Power Query évalue automatiquement les dépendances entre les requêtes. La num
 ### Langage M et commentaires
 
 - [Référence du langage de formules Power Query M](https://learn.microsoft.com/en-us/powerquery-m/)
-- [Spécification du langage M — structure lexicale et commentaires](https://learn.microsoft.com/en-us/powerquery-m/m-spec-lexical-structure)
+- [Spécification du langage M • structure lexicale et commentaires](https://learn.microsoft.com/en-us/powerquery-m/m-spec-lexical-structure)
 
 La spécification indique que M accepte les commentaires sur une ligne avec `//` et les commentaires délimités avec `/* ... */`.
 

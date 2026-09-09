@@ -1,49 +1,14 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
-  "name": "0a930a0798a7deed168b",
-  "displayName": "Vue d'ensemble",
+  "name": "ca5fedce9f6863c8e74b",
+  "displayName": "Analyse des alertes",
   "displayOption": "FitToPage",
   "height": 1080,
   "width": 1920,
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "a79414829893415cd355",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Fact_ProjectPhase"
-              }
-            },
-            "Property": "Alert_Flag"
-          }
-        },
-        "type": "Categorical",
-        "howCreated": "Drillthrough"
-      }
-    ]
-  },
   "pageBinding": {
-    "name": "6e7a11c8d5f29396eb9f",
-    "type": "Drillthrough",
-    "parameters": [
-      {
-        "name": "ace56aadb1248de096f8",
-        "boundFilter": "a79414829893415cd355",
-        "asAggregation": true,
-        "fieldExpr": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Fact_ProjectPhase"
-              }
-            },
-            "Property": "Alert_Flag"
-          }
-        }
-      }
-    ]
+    "name": "6be1fbca277aea390d18",
+    "type": "Default",
+    "parameters": []
   },
   "objects": {
     "background": [
@@ -88,6 +53,19 @@
             "expr": {
               "Literal": {
                 "Value": "0D"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "outspacePane": [
+      {
+        "properties": {
+          "width": {
+            "expr": {
+              "Literal": {
+                "Value": "298L"
               }
             }
           }

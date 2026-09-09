@@ -16,6 +16,11 @@ annotation PBI_QueryOrder = ["pDataFilePath","src_SanitoralWorkbook","fxNormaliz
 ref table Fact_ProjectPhase
 ref table Dim_Project
 ref table Dim_Date
+ref table _Measures
+
+ref role Director_Global
+ref role Director_Regional
+ref role Director_Country
 
 ref cultureInfo fr-FR
 

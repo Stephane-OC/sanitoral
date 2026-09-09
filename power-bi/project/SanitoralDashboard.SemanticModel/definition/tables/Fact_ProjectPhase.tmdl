@@ -112,6 +112,158 @@ table Fact_ProjectPhase
 
 		annotation SummarizationSetBy = Automatic
 
+	column Cost_Variance_Pct_Phase =
+			
+			DIVIDE (
+			    Fact_ProjectPhase[Actual_Cost] - Fact_ProjectPhase[Planned_Cost],
+			    Fact_ProjectPhase[Planned_Cost]
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: ee37ca39-81af-4c67-bcff-00266b5e0abf
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Duration_Variance_Pct_Phase =
+			
+			DIVIDE (
+			    Fact_ProjectPhase[Actual_Duration] - Fact_ProjectPhase[Planned_Duration],
+			    Fact_ProjectPhase[Planned_Duration]
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: 21e59076-f2ae-4f73-a55a-9bbe6f6df749
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Deliverable_Variance_Pct_Phase =
+			
+			DIVIDE (
+			    Fact_ProjectPhase[Actual_Deliverables] - Fact_ProjectPhase[Planned_Deliverables],
+			    Fact_ProjectPhase[Planned_Deliverables]
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: d93c4f0b-b344-43af-b2bb-d7d6e1b884cc
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Cost_Alert_Flag =
+			
+			VAR PlannedCost = Fact_ProjectPhase[Planned_Cost]
+			VAR ActualCost = Fact_ProjectPhase[Actual_Cost]
+			RETURN
+			    IF (
+			        PlannedCost > 0
+			            && NOT ISBLANK ( ActualCost )
+			            && DIVIDE ( ActualCost - PlannedCost, PlannedCost ) >= 15 / 100,
+			        1,
+			        0
+			    )
+		formatString: 0
+		lineageTag: 1f713d9b-d141-4055-820a-b6684a0b926b
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Duration_Alert_Flag =
+			
+			VAR PlannedDuration = Fact_ProjectPhase[Planned_Duration]
+			VAR ActualDuration = Fact_ProjectPhase[Actual_Duration]
+			RETURN
+			    IF (
+			        PlannedDuration > 0
+			            && NOT ISBLANK ( ActualDuration )
+			            && DIVIDE (
+			                ActualDuration - PlannedDuration,
+			                PlannedDuration
+			            ) >= 15 / 100,
+			        1,
+			        0
+			    )
+		formatString: 0
+		lineageTag: 10f28c1d-a8df-49a1-90d6-21b68d3f69af
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Deliverable_Alert_Flag =
+			
+			VAR PlannedDeliverables = Fact_ProjectPhase[Planned_Deliverables]
+			VAR ActualDeliverables = Fact_ProjectPhase[Actual_Deliverables]
+			RETURN
+			    IF (
+			        PlannedDeliverables > 0
+			            && NOT ISBLANK ( ActualDeliverables )
+			            && DIVIDE (
+			                PlannedDeliverables - ActualDeliverables,
+			                PlannedDeliverables
+			            ) >= 15 / 100,
+			        1,
+			        0
+			    )
+		formatString: 0
+		lineageTag: 9e24723b-64c7-465f-ba9e-dc8690fe70f5
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Alert_Count = ```
+			
+			    Fact_ProjectPhase[Cost_Alert_Flag]
+			        + Fact_ProjectPhase[Duration_Alert_Flag]
+			        + Fact_ProjectPhase[Deliverable_Alert_Flag]
+			```
+		formatString: 0
+		lineageTag: ab1372d1-bb81-4d88-b8f3-ae4d8df62c2b
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Alert_Flag =
+			
+			IF (
+			    Fact_ProjectPhase[Alert_Count] >= 1,
+			    1,
+			    0
+			)
+		formatString: 0
+		lineageTag: 0e7ce854-420d-4404-9cb6-d2b649069e26
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Alert_Severity =
+			
+			SWITCH (
+			    Fact_ProjectPhase[Alert_Count],
+			    3, "Critique",
+			    2, "Élevée",
+			    1, "À surveiller",
+			    "Conforme"
+			)
+		lineageTag: a979808a-92c0-41a2-9f25-52de467c890c
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Deadline_Variance_Days_Phase =
+			
+			VAR PlannedEndDate = Fact_ProjectPhase[Planned_End_Date]
+			VAR ActualEndDate = Fact_ProjectPhase[Actual_End_Date]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( PlannedEndDate )
+			            && NOT ISBLANK ( ActualEndDate ),
+			        DATEDIFF ( PlannedEndDate, ActualEndDate, DAY ),
+			        BLANK ()
+			    )
+		formatString: 0
+		lineageTag: 4e2cf1a4-2179-4fe8-b8c5-b3fc084d9ecb
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
 	partition Fact_ProjectPhase = m
 		mode: import
 		source =

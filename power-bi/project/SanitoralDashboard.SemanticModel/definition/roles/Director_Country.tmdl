@@ -1,0 +1,7 @@
+role Director_Country
+	modelPermission: read
+
+	tablePermission Dim_Project = Dim_Project[Country] = "France"
+
+	annotation PBI_Id = 98bedf19f46e4a7884746e07226cf2c0
+

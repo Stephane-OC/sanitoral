@@ -1,0 +1,380 @@
+table _Measures
+	lineageTag: a73c7191-0693-4f1f-9026-9c37cb6bc7de
+
+	measure 'Total Projects' =
+			
+			DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] )
+		formatString: 0
+		lineageTag: 5a968906-788b-4ce9-8a80-b8db4d57ded4
+
+	measure 'Total Phases' =
+			
+			DISTINCTCOUNT ( Fact_ProjectPhase[Project_Phase_Key] )
+		formatString: 0
+		lineageTag: b992bda7-17e5-4579-9a8c-f9763cde0354
+
+	measure 'Planned Cost' =
+			
+			SUM ( Fact_ProjectPhase[Planned_Cost] )
+		formatString: #,0
+		lineageTag: 8c9516df-a9a8-4b23-8fd3-d9dcd7c40b95
+
+	measure 'Actual Cost' =
+			
+			SUM ( Fact_ProjectPhase[Actual_Cost] )
+		formatString: #,0
+		lineageTag: 6cb3e9c1-b10a-49b2-b794-4cab7fc55899
+
+	measure 'Planned Duration' =
+			
+			SUM ( Fact_ProjectPhase[Planned_Duration] )
+		formatString: 0
+		lineageTag: a0aa9e24-159d-44af-8ad7-91051f4f0972
+
+	measure 'Actual Duration' =
+			
+			SUM ( Fact_ProjectPhase[Actual_Duration] )
+		formatString: 0
+		lineageTag: 15d5ace2-f341-43d6-89bb-53e3473ce7e6
+
+	measure 'Planned Deliverables' =
+			
+			SUM ( Fact_ProjectPhase[Planned_Deliverables] )
+		formatString: 0
+		lineageTag: 4877c986-d43e-4d9c-a89e-9baa1c0a1f41
+
+	measure 'Actual Deliverables' =
+			
+			SUM ( Fact_ProjectPhase[Actual_Deliverables] )
+		formatString: 0
+		lineageTag: 5ed393c5-c884-475a-bce1-ac2440603f24
+
+	measure 'First Project Start Date' =
+			
+			MIN ( Fact_ProjectPhase[Start_Date] )
+		formatString: General Date
+		lineageTag: be103875-817f-4c17-b77d-211e809fb338
+
+	measure 'Last Planned End Date' =
+			
+			MAX ( Fact_ProjectPhase[Planned_End_Date] )
+		formatString: General Date
+		lineageTag: 6051026c-eb3a-4f7e-96a0-270a8ff3f530
+
+	measure 'Last Actual End Date' = ```
+			
+			MAX ( Fact_ProjectPhase[Actual_End_Date] )
+			
+			```
+		formatString: General Date
+		lineageTag: ceb10f7b-4fac-400e-9b86-d6c7f574f510
+
+	measure 'Cost Variance' =
+			
+			[Actual Cost] - [Planned Cost]
+		formatString: #,0
+		lineageTag: 64ec0d17-c399-4a3c-84c5-b961a4fb89a2
+
+	measure 'Cost Variance %' =
+			
+			DIVIDE ( [Cost Variance], [Planned Cost] )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: db9310f1-a8d5-4d49-ad8f-347f8e21fd0c
+
+	measure 'Cost Performance Status' =
+			
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( [Planned Cost] ), BLANK (),
+			    [Cost Variance %] >= 15 / 100, "Alerte",
+			    [Cost Variance %] > 0, "Dépassement inférieur à 15 %",
+			    "Conforme"
+			)
+		lineageTag: 0bf5a485-cf23-4d3a-b744-725046713b2b
+
+	measure 'Duration Variance' =
+			
+			[Actual Duration] - [Planned Duration]
+		formatString: 0
+		lineageTag: 0588be4d-5535-4fe0-b33a-4637eb120f39
+
+	measure 'Duration Variance %' =
+			
+			DIVIDE ( [Duration Variance], [Planned Duration] )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: c1880670-e995-404c-8c25-ca9d55465bce
+
+	measure 'Duration Performance Status' =
+			
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( [Planned Duration] ), BLANK (),
+			    [Duration Variance %] >= 15 / 100, "Alerte",
+			    [Duration Variance %] > 0, "Retard inférieur à 15 %",
+			    "Conforme"
+			)
+		lineageTag: 2b9f036b-7681-4830-9d04-10a030a168e6
+
+	measure 'Deliverable Variance' =
+			
+			[Actual Deliverables] - [Planned Deliverables]
+		formatString: 0
+		lineageTag: 526284d3-9d8a-40c9-9b14-4b73d186177b
+
+	measure 'Deliverable Variance %' =
+			
+			DIVIDE ( [Deliverable Variance], [Planned Deliverables] )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: fd096aa2-97c9-4686-9610-ea1d2d5940ba
+
+	measure 'Deliverable Completion Rate' =
+			
+			DIVIDE ( [Actual Deliverables], [Planned Deliverables] )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: 7b3bef32-0faa-4b91-9b5d-be747bf95471
+
+	measure 'Deliverable Performance Status' =
+			
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( [Planned Deliverables] ), BLANK (),
+			    [Deliverable Variance %] <= -15 / 100, "Alerte",
+			    [Deliverable Variance %] < 0, "Manque inférieur à 15 %",
+			    "Conforme"
+			)
+		lineageTag: 5fea718a-d992-46f4-b436-7cb048561195
+
+	measure 'Cost Alert Phases' =
+			
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS ( Fact_ProjectPhase[Cost_Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: 2f5adecb-68df-4434-adb7-3869f736aa65
+
+	measure 'Duration Alert Phases' =
+			
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS ( Fact_ProjectPhase[Duration_Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: 373aabf1-c742-46ff-be5e-a5a7c6bc7674
+
+	measure 'Deliverable Alert Phases' =
+			
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS ( Fact_ProjectPhase[Deliverable_Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: a059ab98-6f1e-411d-b6bb-2031efbbe2f5
+
+	measure 'Alert Phases' =
+			
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: bf9ca91d-13b7-45e1-9e79-9b9fee4f5069
+
+	measure 'On Track Phases' =
+			
+			[Total Phases] - [Alert Phases]
+		formatString: 0
+		lineageTag: 6938bb3b-5e16-45fd-9eb3-1855130dc427
+
+	measure 'Projects in Alert' =
+			
+			CALCULATE (
+			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
+			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: a0c94fec-8769-41bb-adb0-8ffaca5e4b90
+
+	measure 'Projects on Track' =
+			
+			[Total Projects] - [Projects in Alert]
+		formatString: 0
+		lineageTag: c6fc8180-4a7b-480a-913d-c52fd0f0075c
+
+	measure 'Alert Project Rate' =
+			
+			DIVIDE ( [Projects in Alert], [Total Projects] )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: b994cc74-829d-4bc7-a63b-da5c3a253243
+
+	measure 'Projects with Cost Alert' =
+			
+			CALCULATE (
+			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
+			    KEEPFILTERS ( Fact_ProjectPhase[Cost_Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: 43c4da22-a076-430b-bedc-ad63d9156467
+
+	measure 'Projects with Duration Alert' =
+			
+			CALCULATE (
+			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
+			    KEEPFILTERS ( Fact_ProjectPhase[Duration_Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: d0f2599e-25a4-42ce-a3ff-ad87d94c7091
+
+	measure 'Projects with Deliverable Alert' =
+			
+			CALCULATE (
+			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
+			    KEEPFILTERS ( Fact_ProjectPhase[Deliverable_Alert_Flag] = 1 )
+			)
+		formatString: 0
+		lineageTag: 697c13a2-834b-4db9-a24a-2a8fe8e65b41
+
+	measure 'Critical Alert Phases' =
+			
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 3 )
+			)
+		formatString: 0
+		lineageTag: 6682a831-a42e-4c6b-9e3d-318fc6da6f2b
+
+	measure 'High Alert Phases' =
+			
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 2 )
+			)
+		formatString: 0
+		lineageTag: 5bb757b0-e918-4a89-9ba9-018ede3835aa
+
+	measure 'Watch Alert Phases' =
+			
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 1 )
+			)
+		formatString: 0
+		lineageTag: d4d22f0f-d405-4a1d-8f78-a7def695313e
+
+	measure 'Alert Color' =
+			
+			SWITCH (
+			    TRUE (),
+			    [Critical Alert Phases] > 0, "#FB7185",
+			    [High Alert Phases] > 0, "#FBBF24",
+			    [Watch Alert Phases] > 0, "#A78BFA",
+			    "#34D399"
+			)
+		lineageTag: 39e94ed0-e78f-476a-8186-644dac2250ac
+
+	measure 'Selected Scope' =
+			
+			VAR SelectedCountry = SELECTEDVALUE ( Dim_Project[Country] )
+			VAR SelectedRegion = SELECTEDVALUE ( Dim_Project[Region] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        NOT ISBLANK ( SelectedCountry ), "Pays : " & SelectedCountry,
+			        NOT ISBLANK ( SelectedRegion ), "Région : " & SelectedRegion,
+			        "Monde"
+			    )
+		lineageTag: 4f3c101b-d26b-4182-b55c-ad156cfa9d1a
+
+	measure 'Visible Scope Level' =
+			
+			SWITCH (
+			    TRUE (),
+			    HASONEVALUE ( Dim_Project[Country] ), "Vue pays",
+			    HASONEVALUE ( Dim_Project[Region] ), "Vue régionale",
+			    "Vue mondiale"
+			)
+		lineageTag: 8febeea9-850d-4269-8ce4-2c39ef6041c5
+
+	measure 'Selected Project' =
+			
+			SELECTEDVALUE ( Dim_Project[Project_Label], "Tous les projets" )
+		lineageTag: 273e3718-52a2-4f94-b3dd-7d91272e3d18
+
+	measure 'Data Period' =
+			
+			VAR StartDate = [First Project Start Date]
+			VAR EndDate = [Last Actual End Date]
+			RETURN
+			    IF (
+			        ISBLANK ( StartDate ) || ISBLANK ( EndDate ),
+			        "Période indisponible",
+			        FORMAT ( StartDate, "dd/MM/yyyy" )
+			            & " – "
+			            & FORMAT ( EndDate, "dd/MM/yyyy" )
+			    )
+		lineageTag: 7235f528-7ed5-4367-b0c9-02c315cd81a8
+
+	measure 'Executive Narrative' =
+			
+			VAR ProjectCount = [Total Projects]
+			VAR AlertProjectCount = [Projects in Alert]
+			VAR AlertRate = [Alert Project Rate]
+			RETURN
+			    FORMAT ( AlertProjectCount, "0" )
+			        & " projet(s) sur "
+			        & FORMAT ( ProjectCount, "0" )
+			        & " présentent au moins une phase en alerte, soit "
+			        & FORMAT ( AlertRate, "0.0 %" )
+			        & " du périmètre affiché."
+		lineageTag: 694aa99a-0a37-43e2-9b41-cb188ecb5582
+
+	measure 'Performance Narrative' =
+			
+			VAR CostVariance = [Cost Variance %]
+			VAR DurationVariance = [Duration Variance %]
+			VAR DeliverableVariance = [Deliverable Variance %]
+			RETURN
+			    "Écart coût : "
+			        & FORMAT ( CostVariance, "+0.0 %;-0.0 %;0.0 %" )
+			        & " • écart durée : "
+			        & FORMAT ( DurationVariance, "+0.0 %;-0.0 %;0.0 %" )
+			        & " • écart livrables : "
+			        & FORMAT ( DeliverableVariance, "+0.0 %;-0.0 %;0.0 %" )
+		lineageTag: 45da29dc-9ba9-4ecd-b602-fcb47c64ced4
+
+	measure 'Selected Project Alert Summary' =
+			
+			VAR ProjectName = [Selected Project]
+			VAR PhaseAlertCount = [Alert Phases]
+			RETURN
+			    IF (
+			        ProjectName = "Tous les projets",
+			        "Sélectionnez un projet pour afficher le détail de ses phases.",
+			        ProjectName
+			            & " possède "
+			            & FORMAT ( PhaseAlertCount, "0" )
+			            & " phase(s) en alerte."
+			    )
+		lineageTag: 5493dd39-61e2-47fe-974e-5145c74a158c
+
+	column _Placeholder
+		isHidden
+		formatString: 0
+		lineageTag: 08d20bae-ccad-4479-8282-7797e7367047
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [_Placeholder]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
+		mode: import
+		source =
+				
+				ROW (
+				    "_Placeholder",
+				    BLANK ()
+				)
+
+	annotation PBI_Id = be107d77f1f440988293b4c03d1d2216
+

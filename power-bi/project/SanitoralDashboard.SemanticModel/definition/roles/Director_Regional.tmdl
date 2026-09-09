@@ -1,0 +1,7 @@
+role Director_Regional
+	modelPermission: read
+
+	tablePermission Dim_Project = Dim_Project[Region] = "Western Europe"
+
+	annotation PBI_Id = b92e09d630e74e54b0d274de8b1f471c
+

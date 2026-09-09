@@ -1,0 +1,7 @@
+role Director_Global
+	modelPermission: read
+
+	tablePermission Dim_Project = TRUE ()
+
+	annotation PBI_Id = 127f8c1fbe0a4fe68810fb763d093882
+

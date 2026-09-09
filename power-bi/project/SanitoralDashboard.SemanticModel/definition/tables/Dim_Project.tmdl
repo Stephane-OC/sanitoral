@@ -20,6 +20,7 @@ table Dim_Project
 	column Country
 		dataType: string
 		lineageTag: 0af4623a-59ed-4fba-8d04-e50fa469f36d
+		dataCategory: Country
 		summarizeBy: none
 		sourceColumn: Country
 

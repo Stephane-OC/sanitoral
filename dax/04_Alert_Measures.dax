@@ -6,30 +6,42 @@
 
 
 Cost Alert Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Cost_Alert_Flag] = 1 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Cost_Alert_Flag] = 1)
+    ),
+    0
 )
 
 
 Duration Alert Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Duration_Alert_Flag] = 1 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Duration_Alert_Flag] = 1)
+    ),
+    0
 )
 
 
 Deliverable Alert Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Deliverable_Alert_Flag] = 1 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Deliverable_Alert_Flag] = 1)
+    ),
+    0
 )
 
 
 Alert Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Alert_Flag] = 1 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Alert_Flag] = 1)
+    ),
+    0
 )
 
 
@@ -37,73 +49,83 @@ On Track Phases =
 [Total Phases] - [Alert Phases]
 
 
-// DISTINCTCOUNT est indispensable : un projet avec trois phases en alerte doit
-// être compté une seule fois
 Projects in Alert =
 CALCULATE (
-    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-    KEEPFILTERS ( Fact_ProjectPhase[Alert_Flag] = 1 )
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Duration_Status] = "Alerte")
 )
 
 
 Projects on Track =
-[Total Projects] - [Projects in Alert]
+CALCULATE (
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Duration_Status] = "Hors alerte")
+)
 
 
 Alert Project Rate =
-DIVIDE ( [Projects in Alert], [Total Projects] )
+DIVIDE (
+    [Projects in Alert],
+    [Total Projects] - [Duration Unknown Projects]
+)
 
 
 Projects with Cost Alert =
 CALCULATE (
-    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-    KEEPFILTERS ( Fact_ProjectPhase[Cost_Alert_Flag] = 1 )
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Cost_Status] = "Alerte")
 )
 
 
 Projects with Duration Alert =
-CALCULATE (
-    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-    KEEPFILTERS ( Fact_ProjectPhase[Duration_Alert_Flag] = 1 )
-)
+[Projects in Alert]
 
 
 Projects with Deliverable Alert =
 CALCULATE (
-    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-    KEEPFILTERS ( Fact_ProjectPhase[Deliverable_Alert_Flag] = 1 )
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Deliverable_Status] = "Alerte")
 )
 
 
 Critical Alert Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 3 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Alert_Count] = 3)
+    ),
+    0
 )
 
 
 High Alert Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 2 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Alert_Count] = 2)
+    ),
+    0
 )
 
 
 Watch Alert Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 1 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Alert_Count] = 1)
+    ),
+    0
 )
 
 
-// Couleur réutilisable dans la mise en forme conditionnelle des cartes,
-// tableaux et indicateurs. La couleur correspond à l'alerte la plus grave du
-// contexte affiché
 Alert Color =
 SWITCH (
     TRUE (),
-    [Critical Alert Phases] > 0, "#FB7185",
-    [High Alert Phases] > 0, "#FBBF24",
-    [Watch Alert Phases] > 0, "#A78BFA",
+    [Critical Alert Phases] > 0,
+    "#FB7185",
+    [High Alert Phases] > 0,
+    "#FBBF24",
+    [Watch Alert Phases] > 0,
+    "#A78BFA",
     "#34D399"
 )

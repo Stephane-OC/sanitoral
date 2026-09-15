@@ -8,29 +8,43 @@
 // IMPORTANT: Deadline_Variance_Days_Phase > 0 = retard et < 0 = avance
 // ============================================================================
 
+
 Late Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] > 0 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Deadline_Variance_Days_Phase] > 0)
+    ),
+    0
 )
 
 
 Early Phases =
-CALCULATE (
-    [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0 )
+COALESCE (
+    CALCULATE (
+        [Total Phases],
+        KEEPFILTERS (Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0)
+    ),
+    0
 )
 
 
 On Time Deadline Phases =
 CALCULATE (
     [Total Phases],
-    KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] = 0 )
+    KEEPFILTERS (
+        FILTER (
+            Fact_ProjectPhase,
+            NOT ISBLANK (Fact_ProjectPhase[Deadline_Variance_Days_Phase])
+            && Fact_ProjectPhase[Deadline_Variance_Days_Phase] ==0
+        )
+    )
 )
 
 
 Late Phase Rate =
-DIVIDE ( [Late Phases], [Total Phases] )
+DIVIDE ([Late Phases], [Total Phases])
+
 
 Average Delay Days =
 AVERAGEX (
@@ -48,16 +62,15 @@ AVERAGEX (
         Fact_ProjectPhase,
         Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0
     ),
-    ABS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] )
+    ABS (Fact_ProjectPhase[Deadline_Variance_Days_Phase])
 )
 
-// Ces deux scores répartissent uniquement les jours de retard ou d'avance
-// sur toutes les phases du périmètre. Ils ne s'annulent donc jamais entre eux
+
 Delay Exposure Days =
 DIVIDE (
     CALCULATE (
-        SUM ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] ),
-        KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] > 0 )
+        SUM (Fact_ProjectPhase[Deadline_Variance_Days_Phase]),
+        KEEPFILTERS (Fact_ProjectPhase[Deadline_Variance_Days_Phase] > 0)
     ),
     [Total Phases]
 )
@@ -66,162 +79,203 @@ DIVIDE (
 Advance Exposure Days =
 DIVIDE (
     - CALCULATE (
-        SUM ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] ),
-        KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0 )
+        SUM (Fact_ProjectPhase[Deadline_Variance_Days_Phase]),
+        KEEPFILTERS (Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0)
     ),
     [Total Phases]
 )
 
-// Les mesures Country ignorent uniquement un éventuel filtre de projet
-// Les filtres Region/Country et les rôles RLS continuent à s'appliquer
+
 Country Late Phases =
 CALCULATE (
     [Late Phases],
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Country Early Phases =
 CALCULATE (
     [Early Phases],
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Country Late Phase Rate =
 CALCULATE (
     [Late Phase Rate],
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Country Average Delay Days =
 CALCULATE (
     [Average Delay Days],
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Country Average Advance Days =
 CALCULATE (
     [Average Advance Days],
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Country Delay Exposure Days =
 CALCULATE (
     [Delay Exposure Days],
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Country Advance Exposure Days =
 CALCULATE (
     [Advance Exposure Days],
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Countries Analyzed =
 CALCULATE (
-    DISTINCTCOUNT ( Dim_Project[Country] ),
-    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+    DISTINCTCOUNT (Dim_Project[Country]),
+    REMOVEFILTERS (
+        Dim_Project[Project_ID],
+        Dim_Project[Project_Label]
+    )
 )
 
 
 Most Delayed Country =
 VAR CountriesInScope =
     CALCULATETABLE (
-        VALUES ( Dim_Project[Country] ),
-        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+        VALUES (Dim_Project[Country]),
+        REMOVEFILTERS (
+            Dim_Project[Project_ID],
+            Dim_Project[Project_Label]
+        )
     )
 VAR RankedCountries =
     TOPN (
         1,
         ADDCOLUMNS (
             CountriesInScope,
-            "@Exposure", [Country Delay Exposure Days]
+            "@Exposure",
+            [Country Delay Exposure Days]
         ),
-        [@Exposure], DESC,
-        Dim_Project[Country], ASC
+        [@Exposure],
+        DESC,
+        Dim_Project[Country],
+        ASC
     )
 RETURN
     CONCATENATEX (
         RankedCountries,
-        Dim_Project[Country] & " • " & FORMAT ( [@Exposure], "0.0" ) & " j"
+        Dim_Project[Country] & " • " & FORMAT ([@Exposure], "0.0") & " j"
     )
 
 
 Most Advanced Country =
 VAR CountriesInScope =
     CALCULATETABLE (
-        VALUES ( Dim_Project[Country] ),
-        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+        VALUES (Dim_Project[Country]),
+        REMOVEFILTERS (
+            Dim_Project[Project_ID],
+            Dim_Project[Project_Label]
+        )
     )
 VAR RankedCountries =
     TOPN (
         1,
         ADDCOLUMNS (
             CountriesInScope,
-            "@Exposure", [Country Advance Exposure Days]
+            "@Exposure",
+            [Country Advance Exposure Days]
         ),
-        [@Exposure], DESC,
-        Dim_Project[Country], ASC
+        [@Exposure],
+        DESC,
+        Dim_Project[Country],
+        ASC
     )
 RETURN
     CONCATENATEX (
         RankedCountries,
-        Dim_Project[Country] & " • " & FORMAT ( [@Exposure], "0.0" ) & " j"
+        Dim_Project[Country] & " • " & FORMAT ([@Exposure], "0.0") & " j"
     )
 
 
 Selected Project Context =
 VAR ProjectName = [Selected Project]
-VAR CountryName = SELECTEDVALUE ( Dim_Project[Country] )
-VAR RegionName = SELECTEDVALUE ( Dim_Project[Region] )
-VAR ProjectType = SELECTEDVALUE ( Dim_Project[Project_Type] )
+VAR CountryName =
+    SELECTEDVALUE (Dim_Project[Country])
+VAR RegionName =
+    SELECTEDVALUE (Dim_Project[Region])
+VAR ProjectType =
+    SELECTEDVALUE (Dim_Project[Project_Type])
 RETURN
     IF (
-        ProjectName = "Tous les projets",
-        "Sélectionnez un projet dans la liste",
-        ProjectName & " • " & CountryName & " • " & RegionName & " • " & ProjectType
-    )
+ProjectName = "Tous les projets",
+"Sélectionnez un projet dans la liste",
+ProjectName & " • " & CountryName & " • " & RegionName & " • " & ProjectType
+)
 
 
 Selected Project Detail Narrative =
-VAR ProjectName = [Selected Project]
-VAR CountryName = SELECTEDVALUE ( Dim_Project[Country] )
-RETURN
-    IF (
-        ProjectName = "Tous les projets",
-        "Sélectionnez un projet pour afficher son diagnostic complet.",
-        ProjectName & " (" & CountryName & ") : "
-            & FORMAT ( [Late Phases], "0" ) & " phase(s) en retard, "
-            & FORMAT ( [Early Phases], "0" ) & " en avance et "
-            & FORMAT ( [On Time Deadline Phases], "0" ) & " à l’heure. "
-            & "Écart coût " & FORMAT ( [Cost Variance %], "+0.0 %;-0.0 %;0.0 %" )
-            & " • écart durée " & FORMAT ( [Duration Variance %], "+0.0 %;-0.0 %;0.0 %" )
-            & " • livrables réalisés " & FORMAT ( [Deliverable Completion Rate], "0.0 %" ) & "."
-    )
+IF (
+    [Project Detail Available] <> 1,
+    "Ouvrez cette page avec Voir le détail depuis une ligne de projet.",
+    [Selected Project] & " (" & SELECTEDVALUE (Dim_Project[Country]) & ") : "
+    & [Project Duration Status] & " sur la durée cumulée, écart "
+    & FORMAT ([Project Duration Variance %], "+0.0%;-0.0%;0.0%") & ". "
+    & FORMAT ([Duration Alert Phases], "0")
+    & " phase(s) atteignent le seuil ; les autres phases peuvent compenser leur retard."
+)
 
 
 Selected Country Delay Rank =
-VAR SelectedCountry = SELECTEDVALUE ( Dim_Project[Country] )
+VAR SelectedCountry =
+    SELECTEDVALUE (Dim_Project[Country])
 VAR CountriesInScope =
     CALCULATETABLE (
-        VALUES ( Dim_Project[Country] ),
-        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+        VALUES (Dim_Project[Country]),
+        REMOVEFILTERS (
+            Dim_Project[Project_ID],
+            Dim_Project[Project_Label]
+        )
     )
 VAR CurrentExposure =
     CALCULATE (
         [Country Delay Exposure Days],
-        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] ),
-        Dim_Project[Country] = SelectedCountry
+        REMOVEFILTERS (
+            Dim_Project[Project_ID],
+            Dim_Project[Project_Label]
+        ),
+        Dim_Project[Country] =
+        SelectedCountry
     )
 RETURN
     IF (
-        ISBLANK ( SelectedCountry ),
+        ISBLANK (SelectedCountry),
         BLANK (),
         RANKX (
             CountriesInScope,
@@ -234,15 +288,16 @@ RETURN
 
 
 Selected Country Rank Label =
-VAR CountryName = SELECTEDVALUE ( Dim_Project[Country] )
+VAR CountryName =
+    SELECTEDVALUE (Dim_Project[Country])
 VAR CountryRank = [Selected Country Delay Rank]
 RETURN
     IF (
-        ISBLANK ( CountryName ),
+        ISBLANK (CountryName),
         "Sélectionnez un projet",
         CountryName
-            & " • rang retard "
-            & FORMAT ( CountryRank, "0" )
-            & " / "
-            & FORMAT ( [Countries Analyzed], "0" )
+        & " • rang retard "
+        & FORMAT (CountryRank, "0")
+        & " / "
+        & FORMAT ([Countries Analyzed], "0")
     )

@@ -9,46 +9,56 @@
 
 // Le DISTINCTCOUNT évite de compter plusieurs fois un projet possédant
 // plusieurs phases
+
+
 Total Projects =
-DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] )
+COALESCE (
+    CALCULATE (
+        DISTINCTCOUNT (Dim_Project[Project_ID]),
+        KEEPFILTERS (Dim_Project[Project_Phase_Count] > 0),
+        KEEPFILTERS (
+            NOT ISBLANK (Dim_Project[Project_ID])
+        )
+    ),
+    0
+)
 
 
-// La clé projet-phase est unique dans la table de faits
 Total Phases =
-DISTINCTCOUNT ( Fact_ProjectPhase[Project_Phase_Key] )
+DISTINCTCOUNT (Fact_ProjectPhase[Project_Phase_Key])
 
 
 Planned Cost =
-SUM ( Fact_ProjectPhase[Planned_Cost] )
+SUM (Fact_ProjectPhase[Planned_Cost])
 
 
 Actual Cost =
-SUM ( Fact_ProjectPhase[Actual_Cost] )
+SUM (Fact_ProjectPhase[Actual_Cost])
 
 
 Planned Duration =
-SUM ( Fact_ProjectPhase[Planned_Duration] )
+SUM (Fact_ProjectPhase[Planned_Duration])
 
 
 Actual Duration =
-SUM ( Fact_ProjectPhase[Actual_Duration] )
+SUM (Fact_ProjectPhase[Actual_Duration])
 
 
 Planned Deliverables =
-SUM ( Fact_ProjectPhase[Planned_Deliverables] )
+SUM (Fact_ProjectPhase[Planned_Deliverables])
 
 
 Actual Deliverables =
-SUM ( Fact_ProjectPhase[Actual_Deliverables] )
+SUM (Fact_ProjectPhase[Actual_Deliverables])
 
 
 First Project Start Date =
-MIN ( Fact_ProjectPhase[Start_Date] )
+MIN (Fact_ProjectPhase[Start_Date])
 
 
 Last Planned End Date =
-MAX ( Fact_ProjectPhase[Planned_End_Date] )
+MAX (Fact_ProjectPhase[Planned_End_Date])
 
 
 Last Actual End Date =
-MAX ( Fact_ProjectPhase[Actual_End_Date] )
+MAX (Fact_ProjectPhase[Actual_End_Date])

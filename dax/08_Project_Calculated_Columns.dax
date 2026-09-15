@@ -1,0 +1,314 @@
+// COLONNES CALCULÉES : Dim_Project
+// Créer les colonnes dans cette table, séparément, dans l’ordre indiqué
+// Les colonnes de la source et les relations doivent déjà exister
+
+
+Project_Phase_Count =
+VAR ProjectId =
+    Dim_Project[Project_ID]
+RETURN
+    COUNTROWS (
+        FILTER (
+            ALL (
+                Fact_ProjectPhase[Project_Phase_Key],
+                Fact_ProjectPhase[Project_ID]
+            ),
+            Fact_ProjectPhase[Project_ID] =
+            ProjectId
+        )
+    )
+
+
+Project_Start_Date =
+VAR ProjectId =
+    Dim_Project[Project_ID]
+VAR Phases =
+    FILTER (
+        ALL (
+            Fact_ProjectPhase[Project_Phase_Key],
+            Fact_ProjectPhase[Project_ID],
+            Fact_ProjectPhase[Start_Date]
+        ),
+        Fact_ProjectPhase[Project_ID] =
+        ProjectId
+    )
+RETURN
+    IF (
+        COUNTROWS (Phases) > 0
+        && COUNTROWS (
+            FILTER (
+                Phases,
+                ISBLANK (Fact_ProjectPhase[Start_Date])
+            )
+        ) = 0,
+        MINX (Phases, Fact_ProjectPhase[Start_Date])
+    )
+
+
+Project_Planned_End_Date =
+VAR ProjectId =
+    Dim_Project[Project_ID]
+VAR Phases =
+    FILTER (
+        ALL (
+            Fact_ProjectPhase[Project_Phase_Key],
+            Fact_ProjectPhase[Project_ID],
+            Fact_ProjectPhase[Planned_End_Date]
+        ),
+        Fact_ProjectPhase[Project_ID] =
+        ProjectId
+    )
+RETURN
+    IF (
+        COUNTROWS (Phases) > 0
+        && COUNTROWS (
+            FILTER (
+                Phases,
+                ISBLANK (Fact_ProjectPhase[Planned_End_Date])
+            )
+        ) = 0,
+        MAXX (Phases, Fact_ProjectPhase[Planned_End_Date])
+    )
+
+
+Project_Actual_End_Date_Derived =
+VAR ProjectId =
+    Dim_Project[Project_ID]
+VAR Phases =
+    FILTER (
+        ALL (
+            Fact_ProjectPhase[Project_Phase_Key],
+            Fact_ProjectPhase[Project_ID],
+            Fact_ProjectPhase[Actual_End_Date]
+        ),
+        Fact_ProjectPhase[Project_ID] =
+        ProjectId
+    )
+RETURN
+    IF (
+        COUNTROWS (Phases) > 0
+        && COUNTROWS (
+            FILTER (
+                Phases,
+                ISBLANK (Fact_ProjectPhase[Actual_End_Date])
+            )
+        ) = 0,
+        MAXX (Phases, Fact_ProjectPhase[Actual_End_Date])
+    )
+
+
+Project_Planned_Span_Days =
+VAR StartDate =
+    Dim_Project[Project_Start_Date]
+VAR EndDate =
+    Dim_Project[Project_Planned_End_Date]
+RETURN
+    IF (
+        NOT ISBLANK (StartDate) && NOT ISBLANK (EndDate) && EndDate >=
+        StartDate,
+        DATEDIFF (
+            StartDate,
+            EndDate,
+            DAY
+        )
+    )
+
+
+Project_Start_Month =
+VAR StartDate =
+    Dim_Project[Project_Start_Date]
+RETURN
+    IF (
+        NOT ISBLANK (StartDate),
+        DATE (
+            YEAR (StartDate),
+            MONTH (StartDate),
+            1
+        )
+    )
+
+
+Project_Duration_Variance_Pct =
+VAR ProjectId =
+    Dim_Project[Project_ID]
+VAR Phases =
+    FILTER (
+        ALL (
+            Fact_ProjectPhase[Project_Phase_Key],
+            Fact_ProjectPhase[Project_ID],
+            Fact_ProjectPhase[Planned_Duration],
+            Fact_ProjectPhase[Actual_Duration]
+        ),
+        Fact_ProjectPhase[Project_ID] =
+        ProjectId
+    )
+VAR InvalidRows =
+    COUNTROWS (
+        FILTER (
+            Phases,
+            ISBLANK (Fact_ProjectPhase[Planned_Duration])
+            || Fact_ProjectPhase[Planned_Duration] <= 0
+            || ISBLANK (Fact_ProjectPhase[Actual_Duration])
+            || Fact_ProjectPhase[Actual_Duration] < 0
+        )
+    )
+VAR Planned =
+    SUMX (
+        Phases,
+        Fact_ProjectPhase[Planned_Duration]
+    )
+VAR Actual =
+    SUMX (
+        Phases,
+        Fact_ProjectPhase[Actual_Duration]
+    )
+RETURN
+    IF (
+        COUNTROWS (Phases) > 0 && InvalidRows = 0,
+        DIVIDE (Actual - Planned, Planned)
+    )
+
+
+Project_Cost_Variance_Pct =
+VAR ProjectId =
+    Dim_Project[Project_ID]
+VAR Phases =
+    FILTER (
+        ALL (
+            Fact_ProjectPhase[Project_Phase_Key],
+            Fact_ProjectPhase[Project_ID],
+            Fact_ProjectPhase[Planned_Cost],
+            Fact_ProjectPhase[Actual_Cost]
+        ),
+        Fact_ProjectPhase[Project_ID] =
+        ProjectId
+    )
+VAR InvalidRows =
+    COUNTROWS (
+        FILTER (
+            Phases,
+            ISBLANK (Fact_ProjectPhase[Planned_Cost])
+            || Fact_ProjectPhase[Planned_Cost] <= 0
+            || ISBLANK (Fact_ProjectPhase[Actual_Cost])
+            || Fact_ProjectPhase[Actual_Cost] < 0
+        )
+    )
+VAR Planned =
+    SUMX (
+        Phases,
+        Fact_ProjectPhase[Planned_Cost]
+    )
+VAR Actual =
+    SUMX (
+        Phases,
+        Fact_ProjectPhase[Actual_Cost]
+    )
+RETURN
+    IF (
+        COUNTROWS (Phases) > 0 && InvalidRows = 0,
+        DIVIDE (Actual - Planned, Planned)
+    )
+
+
+Project_Deliverable_Variance_Pct =
+VAR ProjectId =
+    Dim_Project[Project_ID]
+VAR Phases =
+    FILTER (
+        ALL (
+            Fact_ProjectPhase[Project_Phase_Key],
+            Fact_ProjectPhase[Project_ID],
+            Fact_ProjectPhase[Planned_Deliverables],
+            Fact_ProjectPhase[Actual_Deliverables]
+        ),
+        Fact_ProjectPhase[Project_ID] =
+        ProjectId
+    )
+VAR InvalidRows =
+    COUNTROWS (
+        FILTER (
+            Phases,
+            ISBLANK (Fact_ProjectPhase[Planned_Deliverables])
+            || Fact_ProjectPhase[Planned_Deliverables] <= 0
+            || ISBLANK (Fact_ProjectPhase[Actual_Deliverables])
+            || Fact_ProjectPhase[Actual_Deliverables] < 0
+        )
+    )
+VAR Planned =
+    SUMX (
+        Phases,
+        Fact_ProjectPhase[Planned_Deliverables]
+    )
+VAR Actual =
+    SUMX (
+        Phases,
+        Fact_ProjectPhase[Actual_Deliverables]
+    )
+RETURN
+    IF (
+        COUNTROWS (Phases) > 0 && InvalidRows = 0,
+        DIVIDE (Actual - Planned, Planned)
+    )
+
+
+Project_Duration_Status =
+VAR VariancePct =
+    Dim_Project[Project_Duration_Variance_Pct]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (VariancePct),
+        "Non évaluable",
+        VariancePct >= 15 / 100,
+        "Alerte",
+        "Hors alerte"
+    )
+
+
+Project_Cost_Status =
+VAR VariancePct =
+    Dim_Project[Project_Cost_Variance_Pct]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (VariancePct),
+        "Non évaluable",
+        VariancePct >= 15 / 100,
+        "Alerte",
+        "Hors alerte"
+    )
+
+
+Project_Deliverable_Status =
+VAR VariancePct =
+    Dim_Project[Project_Deliverable_Variance_Pct]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (VariancePct),
+        "Non évaluable",
+        VariancePct <= -15 / 100,
+        "Alerte",
+        "Hors alerte"
+    )
+
+
+Project_Alert_Status =
+SWITCH (
+    TRUE (),
+    Dim_Project[Project_Duration_Status] = "Alerte"
+    || Dim_Project[Project_Cost_Status] = "Alerte"
+    || Dim_Project[Project_Deliverable_Status] = "Alerte",
+    "Alerte",
+
+    Dim_Project[Project_Duration_Status] = "Non évaluable"
+    || Dim_Project[Project_Cost_Status] = "Non évaluable"
+    || Dim_Project[Project_Deliverable_Status] = "Non évaluable",
+    "Non évaluable",
+
+    "Hors alerte"
+)
+
+
+Country_Map_Legend =
+Dim_Project[Country]

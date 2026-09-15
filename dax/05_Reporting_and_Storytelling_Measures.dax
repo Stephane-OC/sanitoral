@@ -6,13 +6,21 @@
 
 
 Selected Scope =
-VAR SelectedCountry = SELECTEDVALUE ( Dim_Project[Country] )
-VAR SelectedRegion = SELECTEDVALUE ( Dim_Project[Region] )
+VAR P =
+    SELECTEDVALUE (Dim_Project[Project_Label])
+VAR C =
+    SELECTEDVALUE (Dim_Project[Country])
+VAR R =
+    SELECTEDVALUE (Dim_Project[Region])
 RETURN
     SWITCH (
         TRUE (),
-        NOT ISBLANK ( SelectedCountry ), "Pays : " & SelectedCountry,
-        NOT ISBLANK ( SelectedRegion ), "Région : " & SelectedRegion,
+        NOT ISBLANK (P),
+        "Projet : " & P,
+        NOT ISBLANK (C),
+        "Pays : " & C,
+        NOT ISBLANK (R),
+        "Région : " & R,
         "Monde"
     )
 
@@ -20,14 +28,19 @@ RETURN
 Visible Scope Level =
 SWITCH (
     TRUE (),
-    HASONEVALUE ( Dim_Project[Country] ), "Vue pays",
-    HASONEVALUE ( Dim_Project[Region] ), "Vue régionale",
+    HASONEVALUE (Dim_Project[Country]),
+    "Vue pays",
+    HASONEVALUE (Dim_Project[Region]),
+    "Vue régionale",
     "Vue mondiale"
 )
 
 
 Selected Project =
-SELECTEDVALUE ( Dim_Project[Project_Label], "Tous les projets" )
+SELECTEDVALUE (
+    Dim_Project[Project_Label],
+    "Tous les projets"
+)
 
 
 Data Period =
@@ -35,25 +48,22 @@ VAR StartDate = [First Project Start Date]
 VAR EndDate = [Last Actual End Date]
 RETURN
     IF (
-        ISBLANK ( StartDate ) || ISBLANK ( EndDate ),
+        ISBLANK (StartDate) || ISBLANK (EndDate),
         "Période indisponible",
-        FORMAT ( StartDate, "dd/MM/yyyy" )
-            & " – "
-            & FORMAT ( EndDate, "dd/MM/yyyy" )
+        FORMAT (StartDate, "dd / MM / yyyy")
+        & " – "
+        & FORMAT (EndDate, "dd / MM / yyyy")
     )
 
 
 Executive Narrative =
-VAR ProjectCount = [Total Projects]
-VAR AlertProjectCount = [Projects in Alert]
-VAR AlertRate = [Alert Project Rate]
+VAR Assessed = [Total Projects] - [Duration Unknown Projects]
 RETURN
-    FORMAT ( AlertProjectCount, "0" )
-        & " projet(s) sur "
-        & FORMAT ( ProjectCount, "0" )
-        & " présentent au moins une phase en alerte, soit "
-        & FORMAT ( AlertRate, "0.0 %" )
-        & " du périmètre affiché."
+    FORMAT ([Projects in Alert], "0") & " projet(s) en alerte de durée cumulée sur "
+    & FORMAT (Assessed, "0") & " évaluables, soit "
+    & FORMAT ([Alert Project Rate], "0.0 %") & ". "
+    & FORMAT ([Overall Alert Projects], "0")
+    & " projet(s) présentent au moins un écart global défavorable de 15 % ou plus."
 
 
 Performance Narrative =
@@ -62,23 +72,20 @@ VAR DurationVariance = [Duration Variance %]
 VAR DeliverableVariance = [Deliverable Variance %]
 RETURN
     "Écart coût : "
-        & FORMAT ( CostVariance, "+0.0 %;-0.0 %;0.0 %" )
-        & " • écart durée : "
-        & FORMAT ( DurationVariance, "+0.0 %;-0.0 %;0.0 %" )
-        & " • écart livrables : "
-        & FORMAT ( DeliverableVariance, "+0.0 %;-0.0 %;0.0 %" )
+    & FORMAT (CostVariance, "+0.0 %;-0.0 %;0.0 %")
+    & " • écart durée : "
+    & FORMAT (DurationVariance, "+0.0 %;-0.0 %;0.0 %")
+    & " • écart livrables : "
+    & FORMAT (DeliverableVariance, "+0.0 %;-0.0 %;0.0 %")
 
 
-// Ce texte est destiné à une info-bulle ou au détail d'un projet sélectionné
 Selected Project Alert Summary =
-VAR ProjectName = [Selected Project]
-VAR PhaseAlertCount = [Alert Phases]
-RETURN
-    IF (
-        ProjectName = "Tous les projets",
-        "Sélectionnez un projet pour afficher le détail de ses phases.",
-        ProjectName
-            & " possède "
-            & FORMAT ( PhaseAlertCount, "0" )
-            & " phase(s) en alerte."
-    )
+IF (
+    [Project Detail Available] <> 1,
+    "Sélectionnez un projet puis cliquez sur Voir le détail.",
+    [Selected Project] & " : " & [Project Duration Status]
+    & " sur la durée cumulée ("
+        & FORMAT ([Project Duration Variance %], "+0.0%;-0.0%;0.0%") & "). "
+    & FORMAT ([Duration Alert Phases], "0")
+    & " phase(s) atteignent le seuil de durée."
+)

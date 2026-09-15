@@ -1,0 +1,185 @@
+// MESURES : Cumul projet et synthèse pays
+// TABLE : _Measures
+// Créer chaque mesure séparément ; les noms correspondent au modèle
+
+
+Duration Unknown Projects =
+CALCULATE (
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Duration_Status] = "Non évaluable")
+)
+
+
+Overall Alert Projects =
+CALCULATE (
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Alert_Status] = "Alerte")
+)
+
+
+Overall On Track Projects =
+CALCULATE (
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Alert_Status] = "Hors alerte")
+)
+
+
+Overall Unknown Projects =
+CALCULATE (
+    [Total Projects],
+    KEEPFILTERS (Dim_Project[Project_Alert_Status] = "Non évaluable")
+)
+
+
+Overall Alert Project Rate =
+DIVIDE (
+    [Overall Alert Projects],
+    [Overall Alert Projects] + [Overall On Track Projects]
+)
+
+
+Project Duration Variance % =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Duration_Variance_Pct])
+)
+
+
+Project Cost Variance % =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Cost_Variance_Pct])
+)
+
+
+Project Deliverable Variance % =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Deliverable_Variance_Pct])
+)
+
+
+Project Duration Status =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Duration_Status])
+)
+
+
+Project Cost Status =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Cost_Status])
+)
+
+
+Project Deliverable Status =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Deliverable_Status])
+)
+
+
+Project Overall Status =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Alert_Status])
+)
+
+
+Project Duration Color =
+SWITCH (
+    [Project Duration Status],
+    "Alerte",
+    "#FB7185",
+    "Hors alerte",
+    "#34D399",
+    "#94A3B8"
+)
+
+
+Project Cost Color =
+SWITCH (
+    [Project Cost Status],
+    "Alerte",
+    "#FB7185",
+    "Hors alerte",
+    "#34D399",
+    "#94A3B8"
+)
+
+
+Project Deliverable Color =
+SWITCH (
+    [Project Deliverable Status],
+    "Alerte",
+    "#FB7185",
+    "Hors alerte",
+    "#34D399",
+    "#94A3B8"
+)
+
+
+Country Duration Status =
+SWITCH (
+    TRUE (),
+    [Total Projects] = 0,
+    BLANK (),
+    [Projects in Alert] > 0,
+    "Au moins un projet en alerte de durée",
+    [Duration Unknown Projects] > 0,
+    "Données incomplètes",
+    "Aucun projet en alerte de durée"
+)
+
+
+Country Duration Color =
+SWITCH (
+    TRUE (),
+    [Total Projects] = 0,
+    "#94A3B8",
+    [Projects in Alert] > 0,
+    "#FB7185",
+    [Duration Unknown Projects] > 0,
+    "#94A3B8",
+    "#34D399"
+)
+
+
+Portfolio Countries =
+COALESCE (
+    COUNTROWS (
+        FILTER (
+            VALUES (Dim_Project[Country]),
+            NOT ISBLANK (Dim_Project[Country]) && [Total Projects] > 0
+        )
+    ),
+    0
+)
+
+
+Max Project Duration Variance % =
+MAXX (
+    FILTER (
+        VALUES (Dim_Project[Project_ID]),
+        [Total Projects] > 0
+    ),
+    [Project Duration Variance %]
+)
+
+
+Project Detail Available =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID])
+    && [Total Projects] = 1,
+    1,
+    0
+)
+
+
+Project Detail Instruction =
+IF (
+    [Project Detail Available] = 1,
+    "Voir les phases du projet sélectionné",
+    "Sélectionnez un seul projet puis cliquez sur Voir le détail."
+)

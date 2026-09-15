@@ -1,19 +1,7 @@
-// ============================================================================
 // COLONNES CALCULÉES : Fact_ProjectPhase
-// OBJECTIF : Évaluer les écarts et les alertes au grain projet-phase
-// GRAIN    : Une ligne = une phase d'un projet
-// SEUIL    : Une alerte est déclenchée à partir de 15 % d'écart défavorable
-// CRÉATION : Sélectionner Fact_ProjectPhase > Outils de table > Nouvelle colonne
-// IMPORTANT: Créer les colonnes une par une et dans l'ordre de ce fichier
-// ============================================================================
+// Créer les colonnes dans cette table, séparément, dans l’ordre indiqué
+// Les colonnes de la source et les relations doivent déjà exister
 
-
-// ---------------------------------------------------------------------------
-// 1. Écarts relatifs calculés pour chaque phase
-// Une valeur positive signifie que le réel est supérieur au prévisionnel
-// Pour les livrables, une valeur négative représente donc un manque
-// DIVIDE évite une erreur lorsque la valeur prévisionnelle est égale à zéro
-// ---------------------------------------------------------------------------
 
 Cost_Variance_Pct_Phase =
 DIVIDE (
@@ -36,94 +24,145 @@ DIVIDE (
 )
 
 
-// Nombre de jours séparant la fin réelle de la fin planifiée
-// Une valeur positive représente un retard
-Deadline_Variance_Days_Phase =
-VAR PlannedEndDate = Fact_ProjectPhase[Planned_End_Date]
-VAR ActualEndDate = Fact_ProjectPhase[Actual_End_Date]
-RETURN
-    IF (
-        NOT ISBLANK ( PlannedEndDate )
-            && NOT ISBLANK ( ActualEndDate ),
-        DATEDIFF ( PlannedEndDate, ActualEndDate, DAY ),
-        BLANK ()
-    )
-
-
-// ---------------------------------------------------------------------------
-// 2. Indicateurs binaires d'alerte
-// Le seuil 15 / 100 équivaut à 15 % et évite les problèmes de séparateur
-// décimal entre les configurations régionales françaises et anglaises
-// ---------------------------------------------------------------------------
-
 Cost_Alert_Flag =
-VAR PlannedCost = Fact_ProjectPhase[Planned_Cost]
-VAR ActualCost = Fact_ProjectPhase[Actual_Cost]
+VAR PlannedCost =
+    Fact_ProjectPhase[Planned_Cost]
+VAR ActualCost =
+    Fact_ProjectPhase[Actual_Cost]
 RETURN
     IF (
         PlannedCost > 0
-            && NOT ISBLANK ( ActualCost )
-            && DIVIDE ( ActualCost - PlannedCost, PlannedCost ) >= 15 / 100,
+        && NOT ISBLANK (ActualCost)
+        && DIVIDE (ActualCost - PlannedCost, PlannedCost) >= 15 / 100,
         1,
         0
     )
 
 
 Duration_Alert_Flag =
-VAR PlannedDuration = Fact_ProjectPhase[Planned_Duration]
-VAR ActualDuration = Fact_ProjectPhase[Actual_Duration]
+VAR PlannedDuration =
+    Fact_ProjectPhase[Planned_Duration]
+VAR ActualDuration =
+    Fact_ProjectPhase[Actual_Duration]
 RETURN
     IF (
         PlannedDuration > 0
-            && NOT ISBLANK ( ActualDuration )
-            && DIVIDE ( ActualDuration - PlannedDuration, PlannedDuration ) >= 15 / 100,
+        && NOT ISBLANK (ActualDuration)
+        && DIVIDE (
+            ActualDuration - PlannedDuration,
+            PlannedDuration
+        ) >= 15 / 100,
         1,
         0
     )
 
 
 Deliverable_Alert_Flag =
-VAR PlannedDeliverables = Fact_ProjectPhase[Planned_Deliverables]
-VAR ActualDeliverables = Fact_ProjectPhase[Actual_Deliverables]
+VAR PlannedDeliverables =
+    Fact_ProjectPhase[Planned_Deliverables]
+VAR ActualDeliverables =
+    Fact_ProjectPhase[Actual_Deliverables]
 RETURN
     IF (
         PlannedDeliverables > 0
-            && NOT ISBLANK ( ActualDeliverables )
-            && DIVIDE (
-                PlannedDeliverables - ActualDeliverables,
-                PlannedDeliverables
-            ) >= 15 / 100,
+        && NOT ISBLANK (ActualDeliverables)
+        && DIVIDE (
+            PlannedDeliverables - ActualDeliverables,
+            PlannedDeliverables
+        ) >= 15 / 100,
         1,
         0
     )
 
 
-// ---------------------------------------------------------------------------
-// 3. Synthèse de l'alerte d'une phase
-// Chaque phase a la même importance. Une seule dérive suffit pour déclencher
-// l'alerte, mais Alert_Count conserve le nombre d'indicateurs concernés
-// ---------------------------------------------------------------------------
-
 Alert_Count =
-    Fact_ProjectPhase[Cost_Alert_Flag]
-        + Fact_ProjectPhase[Duration_Alert_Flag]
-        + Fact_ProjectPhase[Deliverable_Alert_Flag]
+Fact_ProjectPhase[Cost_Alert_Flag]
++ Fact_ProjectPhase[Duration_Alert_Flag]
++ Fact_ProjectPhase[Deliverable_Alert_Flag]
 
 
 Alert_Flag =
-IF ( Fact_ProjectPhase[Alert_Count] >= 1, 1, 0 )
+IF (
+    Fact_ProjectPhase[Alert_Count] >= 1,
+    1,
+    0
+)
 
 
 Alert_Severity =
 SWITCH (
     Fact_ProjectPhase[Alert_Count],
-    3, "Critique",
-    2, "Élevée",
-    1, "À surveiller",
+    3,
+    "Critique",
+    2,
+    "Élevée",
+    1,
+    "À surveiller",
     "Conforme"
 )
 
 
-// Les libellés fournis dans Phase sont déjà ordonnables naturellement :
-// phases Marketing 1 à 4 et phases IT A à F. Aucun tri par colonne DAX n'est
-// appliqué afin d'éviter une dépendance circulaire dans Power BI
+Deadline_Variance_Days_Phase =
+VAR PlannedEndDate =
+    Fact_ProjectPhase[Planned_End_Date]
+VAR ActualEndDate =
+    Fact_ProjectPhase[Actual_End_Date]
+RETURN
+    IF (
+        NOT ISBLANK (PlannedEndDate)
+        && NOT ISBLANK (ActualEndDate),
+        DATEDIFF (
+            PlannedEndDate,
+            ActualEndDate,
+            DAY
+        ),
+        BLANK ()
+    )
+
+
+Phase_Duration_Status =
+VAR Planned =
+    Fact_ProjectPhase[Planned_Duration]
+VAR Actual =
+    Fact_ProjectPhase[Actual_Duration]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (Planned) || Planned <= 0 || ISBLANK (Actual) || Actual < 0,
+        "Non évaluable",
+        DIVIDE (Actual - Planned, Planned) >= 15 / 100,
+        "Alerte",
+        "Hors alerte"
+    )
+
+
+Phase_Cost_Status =
+VAR Planned =
+    Fact_ProjectPhase[Planned_Cost]
+VAR Actual =
+    Fact_ProjectPhase[Actual_Cost]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (Planned) || Planned <= 0 || ISBLANK (Actual) || Actual < 0,
+        "Non évaluable",
+        DIVIDE (Actual - Planned, Planned) >= 15 / 100,
+        "Alerte",
+        "Hors alerte"
+    )
+
+
+Phase_Deliverable_Status =
+VAR Planned =
+    Fact_ProjectPhase[Planned_Deliverables]
+VAR Actual =
+    Fact_ProjectPhase[Actual_Deliverables]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (Planned) || Planned <= 0 || ISBLANK (Actual) || Actual < 0,
+        "Non évaluable",
+        DIVIDE (Actual - Planned, Planned) <= -15 / 100,
+        "Alerte",
+        "Hors alerte"
+    )

@@ -1,0 +1,263 @@
+// MESURES : Présentation, planning et contexte de la fiche projet
+// TABLE : _Measures
+// Créer chaque mesure séparément ; les noms correspondent au modèle
+// DOSSIER D’AFFICHAGE : Pilotage
+
+
+Detail Planned Cost =
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
+        [Planned Cost],
+        0
+    )
+)
+
+
+Detail Project Context =
+IF (
+    [Project Detail Available] = 1,
+    [Selected Project] & " • " & SELECTEDVALUE (Dim_Project[Country]) & " • " & SELECTEDVALUE (Dim_Project[Region]) & " • " & SELECTEDVALUE (Dim_Project[Project_Type]),
+    "Sélectionnez un projet dans la liste, ou ouvrez sa fiche depuis un tableau."
+)
+
+
+Detail Actual Cost =
+IF ([Project Detail Available] = 1, COALESCE (
+        [Actual Cost],
+        0
+    ))
+
+
+Detail Planned Duration =
+IF ([Project Detail Available] = 1, COALESCE (
+        [Planned Duration],
+        0
+    ))
+
+
+Detail Actual Duration =
+IF ([Project Detail Available] = 1, COALESCE (
+        [Actual Duration],
+        0
+    ))
+
+
+Detail Late Phases =
+IF ([Project Detail Available] = 1, COALESCE (
+        [Late Phases],
+        0
+    ))
+
+
+Detail Summary =
+IF (
+    [Project Detail Available] <> 1,
+    "La fiche reste vide tant qu’un seul projet n’est pas sélectionné.",
+    FORMAT (COALESCE (
+            [Late Phases],
+            0
+        ), "0") & " phases avec une fin décalée ( > 0 j), dont " & FORMAT (COALESCE (
+            [Duration Alert Phases],
+            0
+        ), "0") & " atteignent +15 % de durée. " & FORMAT ([Actual Deliverables], "#,0") & " livrables réalisés pour " & FORMAT ([Planned Deliverables], "#,0") & " prévus. Les avances peuvent compenser les retards dans le cumul du projet."
+)
+
+
+Detail Deadline Summary =
+IF (
+    [Project Detail Available] = 1,
+    "Début : " & FORMAT ([Project Start], "dd / MM / yyyy") & " • Fin prévue : " & FORMAT ([Project Planned Finish], "dd / MM / yyyy") & " • Fin calculée : " & FORMAT ([Project Calculated Finish], "dd / MM / yyyy") & " • Décalage : " & FORMAT ([Project Finish Variance Days], "+0;-0;0") & " j",
+    "Une seule sélection est nécessaire pour afficher les échéances et les phases."
+)
+
+
+Detail Country Rank =
+VAR C =
+    SELECTEDVALUE (Dim_Project[Country])
+VAR Countries =
+    CALCULATETABLE (
+        VALUES (Dim_Project[Country]),
+        REMOVEFILTERS (Dim_Project),
+        REMOVEFILTERS (Dim_Date)
+    )
+VAR Scores =
+    ADDCOLUMNS (
+        Countries,
+        "@Score",
+VAR CC =
+    Dim_Project[Country]
+RETURN
+    CALCULATE (
+        [Delay Exposure Days],
+        REMOVEFILTERS (Dim_Project),
+        REMOVEFILTERS (Dim_Date),
+        TREATAS (
+            {
+                CC},
+            Dim_Project[Country]
+        )
+    )
+)
+VAR CurrentScore =
+    MAXX (FILTER (
+            Scores,
+            Dim_Project[Country] =
+            C
+        ), [@Score])
+RETURN
+    IF (
+        [Project Detail Available] = 1 && NOT ISBLANK (CurrentScore),
+        C & " : " & FORMAT (
+            RANKX (
+                FILTER (
+                    Scores,
+                    NOT ISBLANK ([@Score])
+                ),
+                [@Score],
+                CurrentScore,
+                DESC,
+                DENSE
+            ),
+            "0"
+        ) & " / " & FORMAT (COUNTROWS (
+                FILTER (
+                    Scores,
+                    NOT ISBLANK ([@Score])
+                )
+            ), "0")
+    )
+
+
+Detail Deliverables Summary =
+IF (
+    [Project Detail Available] = 1,
+    FORMAT ([Actual Deliverables], "#,0") & " / " & FORMAT ([Planned Deliverables], "#,0") & " livrables réalisés / prévus",
+    "Aucun projet sélectionné"
+)
+
+
+Project Start =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Start_Date])
+)
+
+
+Project Planned Finish =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Planned_End_Date])
+)
+
+
+Project Finish Variance Days =
+VAR P = [Project Planned Finish]
+VAR A = [Project Calculated Finish]
+RETURN
+    IF (NOT ISBLANK (P) && NOT ISBLANK (A), DATEDIFF (
+            P,
+            A,
+            DAY
+        ))
+
+
+Project Calculated Finish =
+IF (
+    HASONEVALUE (Dim_Project[Project_ID]),
+    SELECTEDVALUE (Dim_Project[Project_Actual_End_Date_Derived])
+)
+
+
+Planning Last Finish =
+MAX (Dim_Project[Project_Planned_End_Date])
+
+
+Planning First Start =
+MIN (Dim_Project[Project_Start_Date])
+
+
+Planning Summary =
+FORMAT ([Total Projects], "0") & " projets dans le périmètre • " & FORMAT ([Projects in Alert], "0") & " en alerte de durée cumulée. Sélectionnez une barre ou une ligne, puis ouvrez la fiche projet."
+
+
+Alert Page Summary =
+FORMAT ([Overall Alert Projects], "0") & " projets avec au moins une alerte cumulée. " & FORMAT (COALESCE (
+        [Alert Phases],
+        0
+    ), "0") & " phases en alerte dans la période affichée. Une phase peut cumuler plusieurs types d’alerte."
+
+
+Detail Actual Deliverables =
+IF ([Project Detail Available] = 1, COALESCE (
+        [Actual Deliverables],
+        0
+    ))
+
+
+Phase Cost Color =
+SWITCH (
+    SELECTEDVALUE (Fact_ProjectPhase[Phase_Cost_Status]),
+    "Alerte",
+    "#FB7185",
+    "Hors alerte",
+    "#34D399",
+    "#94A3B8"
+)
+
+
+Phase Deliverable Color =
+SWITCH (
+    SELECTEDVALUE (Fact_ProjectPhase[Phase_Deliverable_Status]),
+    "Alerte",
+    "#FB7185",
+    "Hors alerte",
+    "#34D399",
+    "#94A3B8"
+)
+
+
+Phase Duration Color =
+SWITCH (
+    SELECTEDVALUE (Fact_ProjectPhase[Phase_Duration_Status]),
+    "Alerte",
+    "#FB7185",
+    "Hors alerte",
+    "#34D399",
+    "#94A3B8"
+)
+
+
+Phase Severity Color =
+SWITCH (
+    SELECTEDVALUE (Fact_ProjectPhase[Alert_Severity]),
+    "Critique",
+    "#FB7185",
+    "Élevée",
+    "#FBBF24",
+    "À surveiller",
+    "#38CFE0",
+    "Conforme",
+    "#34D399",
+    "#94A3B8"
+)
+
+
+Portfolio Cost Color =
+VAR V = [Cost Variance %]
+RETURN
+    SWITCH (TRUE (), ISBLANK (V), "#94A3B8", V >= 0.15, "#FB7185", "#34D399")
+
+
+Detail Duration Alert Phases =
+IF ([Project Detail Available] = 1, COALESCE (
+        [Duration Alert Phases],
+        0
+    ))
+
+
+Detail Planned Deliverables =
+IF ([Project Detail Available] = 1, COALESCE (
+        [Planned Deliverables],
+        0
+    ))

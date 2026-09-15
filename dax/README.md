@@ -1,347 +1,420 @@
-# Pack DAX • Sanitoral Project Performance Dashboard 
+# DAX Sanitoral Project Performance Dashboard
 
 ![Sanitoral banner](../assets/images/sanitoral_banner.png)
 
-Ce document explique comment reproduire la partie DAX du projet Sanitoral dans Power BI Desktop. Il précise, pour chaque objet, son nom exact, son type, son emplacement, son format et son rôle dans le rapport.
+Ce pack documente les formules du modèle sémantique Sanitoral : **112 mesures**, **13 colonnes calculées de phase**, **14 colonnes calculées de projet**, la table technique `_Measures` et trois rôles RLS de démonstration. Les noms correspondent aux objets du projet Power BI fourni.
 
-> Les fichiers `.dax` sont des fichiers de documentation et de versionnement. Power BI ne les importe pas automatiquement. Il faut créer chaque table, colonne, mesure ou rôle dans Power BI, puis copier uniquement la formule correspondante.
+Les fichiers `.dax` servent à lire, versionner et reproduire les formules. Power BI ne les importe pas automatiquement. Dans le projet `.pbip`, les définitions actives sont les fichiers `.tmdl` du dossier `SanitoralDashboard.SemanticModel/definition`.
 
-## 1. État actuel du projet
+## Modèle et grain des données
 
-La préparation Power Query et le modèle en étoile sont déjà opérationnels. Le projet contient :
-
-- `Fact_ProjectPhase`, avec une ligne par projet et par phase ;
-- `Dim_Project`, reliée à la table de faits par `Project_ID` ;
-- `Dim_Date`, reliée à la table de faits par `Start_Date` ;
-- une relation active `Dim_Project[Project_ID]` → `Fact_ProjectPhase[Project_ID]` ;
-- une relation active `Dim_Date[Date]` → `Fact_ProjectPhase[Start_Date]` ;
-- la date automatique désactivée et `Dim_Date` marquée comme table de dates.
-
-Avancement DAX au moment de cette version :
-
-- [x] `00_Create_Measures_Table.dax` • table `_Measures` créée ;
-- [x] `01_Phase_Calculated_Columns.dax` • 10 colonnes calculées créées ;
-- [x] `02_Portfolio_Measures.dax` • 11 mesures de base créées ;
-- [x] `03_Performance_Variance_Measures.dax` • mesures d'écart à créer ;
-- [x] `04_Alert_Measures.dax` • mesures d'alerte à créer ;
-- [x] `05_Reporting_and_Storytelling_Measures.dax` • mesures de texte à créer ;
-- [x] `06_RLS_Roles.dax` • rôles de démonstration à créer ;
-- [x] `07_Detail_And_Country_Performance.dax` • mesures de détail projet et de performance pays à créer.
-
-## 2. Contenu du pack
-
-| Fichier | Type d'objet | Nombre | Utilisation |
-|---|---|---:|---|
-| `00_Create_Measures_Table.dax` | Table calculée | 1 | Centraliser les mesures dans `_Measures` |
-| `01_Phase_Calculated_Columns.dax` | Colonnes calculées | 10 | Calculer les écarts et alertes de chaque phase |
-| `02_Portfolio_Measures.dax` | Mesures | 11 | Créer les totaux du portefeuille |
-| `03_Performance_Variance_Measures.dax` | Mesures | 10 | Comparer les valeurs réelles et prévisionnelles |
-| `04_Alert_Measures.dax` | Mesures | 15 | Compter les phases et projets en alerte |
-| `05_Reporting_and_Storytelling_Measures.dax` | Mesures | 7 | Créer les titres et textes narratifs |
-| `06_RLS_Roles.dax` | Rôles RLS | 3 | Simuler les périmètres mondial, régional et pays |
-| `07_Detail_And_Country_Performance.dax` | Mesures | 22 | Analyser les retards, les avances, le détail projet et la performance des pays |
-
-Au total, le pack définit une table calculée, 10 colonnes calculées, 65 mesures et 3 rôles RLS.
-
-## 3. Différence entre les objets DAX
-
-| Objet | Bouton Power BI | Emplacement | Calcul |
-|---|---|---|---|
-| Table calculée | **Accueil ou Modélisation > Nouvelle table** | Nouvelle table du modèle | Une fois au chargement du modèle |
-| Colonne calculée | Sélectionner la table, puis **Nouvelle colonne** | Dans chaque ligne de la table sélectionnée | Une valeur par ligne |
-| Mesure | Sélectionner `_Measures`, puis **Nouvelle mesure** | Table principale `_Measures` | Selon les filtres du visuel |
-| Rôle RLS | **Modélisation > Gérer les rôles** | Filtre appliqué à `Dim_Project` | Selon le rôle testé ou attribué |
-
-Une mesure doit afficher l'icône de calculatrice. Une colonne calculée reste dans `Fact_ProjectPhase` et affiche une icône de colonne calculée. Si une mesure apparaît dans une autre table, sélectionner la mesure et définir **Table principale** sur `_Measures`.
-
-## 4. Méthode de copie des formules
-
-Pour chaque objet :
-
-1. ouvrir le fichier `.dax` concerné ;
-2. repérer le nom exact de l'objet ;
-3. dans Power BI, cliquer sur le bouton indiqué dans ce README ;
-4. copier uniquement le bloc commençant par `Nom de l'objet =` et se terminant à la fin de sa formule ;
-5. valider avec **Entrée** ou la coche ;
-6. régler les propriétés de format indiquées ci-dessous ;
-7. passer à l'objet suivant.
-
-Ne pas coller un fichier contenant plusieurs définitions dans une seule colonne ou une seule mesure.
-
-## 5. Fichier 00 • Table technique `_Measures`
-
-### Création
-
-1. Ouvrir la vue **Modèle**.
-2. Cliquer sur **Accueil > Nouvelle table** ou **Modélisation > Nouvelle table**.
-3. Copier la formule de `00_Create_Measures_Table.dax`.
-4. Valider la formule.
-5. Masquer la colonne `_Placeholder` dans la vue Rapport.
-
-| Nom | Type d'objet | Type de données | Format | Décimales | Résumer par | Utilisation |
-|---|---|---|---|---:|---|---|
-| `_Measures` | Table calculée | — | — | — | — | Contenir toutes les mesures du rapport |
-| `_Placeholder` | Colonne technique | Nombre entier | Général | 0 | Aucun | Permettre l'existence de la table ; à masquer |
-
-## 6. Fichier 01 • Colonnes calculées de `Fact_ProjectPhase`
-
-### Création
-
-Pour chaque ligne du tableau ci-dessous :
-
-1. sélectionner `Fact_ProjectPhase` ;
-2. cliquer sur **Nouvelle colonne** ;
-3. copier la formule portant le même nom depuis `01_Phase_Calculated_Columns.dax` ;
-4. valider ;
-5. appliquer les propriétés indiquées ;
-6. respecter strictement l'ordre de création.
-
-| Ordre | Nom exact | Type | Format | Décimales | Résumer par | Interprétation |
-|---:|---|---|---|---:|---|---|
-| 1 | `Cost_Variance_Pct_Phase` | Nombre décimal | Pourcentage | 1 | Aucun | Écart relatif coût ; positif = dépassement |
-| 2 | `Duration_Variance_Pct_Phase` | Nombre décimal | Pourcentage | 1 | Aucun | Écart relatif durée ; positif = retard |
-| 3 | `Deliverable_Variance_Pct_Phase` | Nombre décimal | Pourcentage | 1 | Aucun | Écart relatif livrables ; négatif = manque |
-| 4 | `Deadline_Variance_Days_Phase` | Nombre entier | Nombre entier | 0 | Aucun | Jours entre fin prévue et fin réelle ; positif = retard |
-| 5 | `Cost_Alert_Flag` | Nombre entier | Nombre entier | 0 | Aucun | `1` si le dépassement de coût atteint 15 %, sinon `0` |
-| 6 | `Duration_Alert_Flag` | Nombre entier | Nombre entier | 0 | Aucun | `1` si le dépassement de durée atteint 15 %, sinon `0` |
-| 7 | `Deliverable_Alert_Flag` | Nombre entier | Nombre entier | 0 | Aucun | `1` si le manque de livrables atteint 15 %, sinon `0` |
-| 8 | `Alert_Count` | Nombre entier | Nombre entier | 0 | Aucun | Nombre de critères en alerte, de 0 à 3 |
-| 9 | `Alert_Flag` | Nombre entier | Nombre entier | 0 | Aucun | `1` si au moins un critère est en alerte |
-| 10 | `Alert_Severity` | Texte | Général | — | Aucun | `Conforme`, `À surveiller`, `Élevée` ou `Critique` |
-
-### Règle métier appliquée
-
-Le seuil est évalué au grain **projet-phase**. Une phase est en alerte dès qu'au moins un de ces cas est vrai :
-
-- coût réel supérieur d'au moins 15 % au coût prévu ;
-- durée réelle supérieure d'au moins 15 % à la durée prévue ;
-- nombre de livrables réels inférieur d'au moins 15 % au nombre prévu.
-
-Un projet peut donc avoir certaines phases en alerte et d'autres conformes.
-
-### Important concernant `Phase_Order`
-
-Ne pas créer de colonne DAX `Phase_Order`, puis demander à Power BI de trier `Phase` par cette colonne. Comme `Phase_Order` serait calculée à partir de `Phase`, ce tri peut provoquer une dépendance circulaire. Les libellés de phase actuels sont conservés tels quels.
-
-## 7. Fichier 02 • Mesures de base du portefeuille
-
-### Création
-
-Pour chaque mesure : sélectionner `_Measures`, cliquer sur **Nouvelle mesure**, copier une seule formule depuis `02_Portfolio_Measures.dax`, puis appliquer son format.
-
-| Ordre | Nom exact | Type de données | Format | Décimales | Table principale | Utilisation |
-|---:|---|---|---|---:|---|---|
-| 1 | `Total Projects` | Nombre entier | Nombre entier | 0 | `_Measures` | Nombre distinct de projets |
-| 2 | `Total Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Nombre distinct de clés projet-phase |
-| 3 | `Planned Cost` | Nombre entier | Nombre entier avec séparateur de milliers | 0 | `_Measures` | Coût total prévu |
-| 4 | `Actual Cost` | Nombre entier | Nombre entier avec séparateur de milliers | 0 | `_Measures` | Coût total réel |
-| 5 | `Planned Duration` | Nombre entier | Nombre entier | 0 | `_Measures` | Durée totale prévue |
-| 6 | `Actual Duration` | Nombre entier | Nombre entier | 0 | `_Measures` | Durée totale réelle |
-| 7 | `Planned Deliverables` | Nombre entier | Nombre entier | 0 | `_Measures` | Nombre total de livrables prévus |
-| 8 | `Actual Deliverables` | Nombre entier | Nombre entier | 0 | `_Measures` | Nombre total de livrables réels |
-| 9 | `First Project Start Date` | Date | `dd/MM/yyyy` | — | `_Measures` | Première date de début du périmètre filtré |
-| 10 | `Last Planned End Date` | Date | `dd/MM/yyyy` | — | `_Measures` | Dernière date de fin planifiée |
-| 11 | `Last Actual End Date` | Date | `dd/MM/yyyy` | — | `_Measures` | Dernière date de fin réelle |
-
-Le fichier source ne précise pas de devise. Les coûts sont donc volontairement affichés comme des nombres avec séparateur de milliers, sans symbole monétaire inventé.
-
-## 8. Fichier 03 • Mesures d'écart de performance
-
-Créer chaque objet avec **Nouvelle mesure** dans `_Measures`, dans l'ordre du fichier.
-
-| Ordre | Nom exact | Type de données | Format | Décimales | Table principale | Interprétation |
-|---:|---|---|---|---:|---|---|
-| 1 | `Cost Variance` | Nombre entier | Nombre entier avec séparateur de milliers | 0 | `_Measures` | Coût réel moins coût prévu |
-| 2 | `Cost Variance %` | Nombre décimal | Pourcentage | 1 | `_Measures` | Écart coût relatif |
-| 3 | `Cost Performance Status` | Texte | Général | — | `_Measures` | Statut coût selon le seuil de 15 % |
-| 4 | `Duration Variance` | Nombre entier | Nombre entier | 0 | `_Measures` | Durée réelle moins durée prévue |
-| 5 | `Duration Variance %` | Nombre décimal | Pourcentage | 1 | `_Measures` | Écart durée relatif |
-| 6 | `Duration Performance Status` | Texte | Général | — | `_Measures` | Statut durée selon le seuil de 15 % |
-| 7 | `Deliverable Variance` | Nombre entier | Nombre entier | 0 | `_Measures` | Livrables réels moins livrables prévus |
-| 8 | `Deliverable Variance %` | Nombre décimal | Pourcentage | 1 | `_Measures` | Écart livrables relatif |
-| 9 | `Deliverable Completion Rate` | Nombre décimal | Pourcentage | 1 | `_Measures` | Livrables réels divisés par les livrables prévus |
-| 10 | `Deliverable Performance Status` | Texte | Général | — | `_Measures` | Statut livrables selon le seuil de 15 % |
-
-Ces mesures changent selon le contexte du visuel : monde, région, pays, projet ou phase. Elles décrivent une performance agrégée ; les alertes officielles restent déterminées ligne par ligne par les colonnes du fichier 01.
-
-## 9. Fichier 04 • Mesures d'alerte
-
-Créer chaque objet avec **Nouvelle mesure** dans `_Measures`, dans l'ordre du fichier.
-
-| Ordre | Nom exact | Type de données | Format | Décimales | Table principale | Utilisation |
-|---:|---|---|---|---:|---|---|
-| 1 | `Cost Alert Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases ayant une alerte coût |
-| 2 | `Duration Alert Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases ayant une alerte durée |
-| 3 | `Deliverable Alert Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases ayant une alerte livrables |
-| 4 | `Alert Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases ayant au moins une alerte |
-| 5 | `On Track Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases sans alerte |
-| 6 | `Projects in Alert` | Nombre entier | Nombre entier | 0 | `_Measures` | Projets distincts ayant au moins une phase en alerte |
-| 7 | `Projects on Track` | Nombre entier | Nombre entier | 0 | `_Measures` | Projets sans phase en alerte |
-| 8 | `Alert Project Rate` | Nombre décimal | Pourcentage | 1 | `_Measures` | Part des projets ayant au moins une alerte |
-| 9 | `Projects with Cost Alert` | Nombre entier | Nombre entier | 0 | `_Measures` | Projets distincts avec alerte coût |
-| 10 | `Projects with Duration Alert` | Nombre entier | Nombre entier | 0 | `_Measures` | Projets distincts avec alerte durée |
-| 11 | `Projects with Deliverable Alert` | Nombre entier | Nombre entier | 0 | `_Measures` | Projets distincts avec alerte livrables |
-| 12 | `Critical Alert Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases avec trois critères en alerte |
-| 13 | `High Alert Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases avec deux critères en alerte |
-| 14 | `Watch Alert Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases avec un critère en alerte |
-| 15 | `Alert Color` | Texte | Général | — | `_Measures` | Code hexadécimal pour la mise en forme conditionnelle |
-
-Couleurs renvoyées par `Alert Color` :
-
-| Niveau prioritaire du contexte | Couleur | Code |
+| Table | Rôle | Grain / relation |
 |---|---|---|
-| Critique | Rose/rouge | `#FB7185` |
-| Élevée | Ambre | `#FBBF24` |
-| À surveiller | Violet | `#A78BFA` |
-| Conforme | Vert | `#34D399` |
+| `Fact_ProjectPhase` | Table de faits : coûts, durées, livrables, dates et alertes | Une ligne par projet et phase, clé `Project_Phase_Key` |
+| `Dim_Project` | Dimension des projets, géographie et types ; indicateurs cumulés du projet | Une ligne par `Project_ID` ; côté 1 de la relation vers `Fact_ProjectPhase[Project_ID]` |
+| `Dim_Date` | Dimension calendrier | Une ligne par date ; côté 1 de la relation vers `Fact_ProjectPhase[Start_Date]` |
+| `_Measures` | Conteneur technique des mesures | Sans relation, colonne `_Placeholder` masquée |
 
-Les mesures au niveau projet utilisent un nombre distinct de `Project_ID`. Un projet ayant trois phases en alerte est donc compté une seule fois.
+Les dimensions filtrent la table de faits. Cette organisation est un modèle en étoile avec deux dimensions ; un nombre imposé de cinq tables ne constitue pas une condition pour former une étoile. Les colonnes Région, Pays et Type décrivent ici le projet dans `Dim_Project`.
 
-## 10. Fichier 05 • Mesures de contexte et de storytelling
+La préparation Power Query, les colonnes importées et les relations doivent exister avant la création des formules. Ce pack ne remplace pas les requêtes Power Query. La date `Actual_End_Date` provient du calcul de préparation des données : début de phase + durée réalisée. Le rapport l’intitule **Fin calculée**.
 
-Créer chaque objet avec **Nouvelle mesure** dans `_Measures`, dans l'ordre du fichier.
+## Organisation des fichiers
 
-| Ordre | Nom exact | Type de données | Format | Décimales | Table principale | Utilisation |
-|---:|---|---|---|---:|---|---|
-| 1 | `Selected Scope` | Texte | Général | — | `_Measures` | Afficher le pays, la région ou le monde sélectionné |
-| 2 | `Visible Scope Level` | Texte | Général | — | `_Measures` | Indiquer s'il s'agit d'une vue pays, régionale ou mondiale |
-| 3 | `Selected Project` | Texte | Général | — | `_Measures` | Afficher le projet sélectionné ou « Tous les projets » |
-| 4 | `Data Period` | Texte | Général | — | `_Measures` | Présenter la période couverte sous forme de texte |
-| 5 | `Executive Narrative` | Texte | Général | — | `_Measures` | Résumer le nombre et le taux de projets en alerte |
-| 6 | `Performance Narrative` | Texte | Général | — | `_Measures` | Résumer les écarts de coût, durée et livrables |
-| 7 | `Selected Project Alert Summary` | Texte | Général | — | `_Measures` | Résumer les alertes du projet sélectionné |
+| Fichier | Objets | Rôle |
+|---|---:|---|
+| `00_Create_Measures_Table.dax` | 1 table | Créer `_Measures` et masquer `_Placeholder` |
+| `01_Phase_Calculated_Columns.dax` | 13 colonnes | Écarts, indicateurs binaires, sévérité et statuts au grain phase |
+| `02_Portfolio_Measures.dax` | 11 mesures | Totaux, volumes et dates du portefeuille |
+| `03_Performance_Variance_Measures.dax` | 10 mesures | Écarts entre réalisé et prévu |
+| `04_Alert_Measures.dax` | 15 mesures | Comptages et taux d’alerte |
+| `05_Reporting_and_Storytelling_Measures.dax` | 7 mesures | Contexte et textes explicatifs |
+| `06_RLS_Roles.dax` | 3 rôles | Périmètres de démonstration : monde, région, pays |
+| `07_Detail_And_Country_Performance.dax` | 22 mesures | Retards, avances, exposition et lecture pays/projet |
+| `08_Project_Calculated_Columns.dax` | 14 colonnes | Cumul de toutes les phases, dates du projet et légende cartographique |
+| `09_Project_Level_Measures.dax` | 21 mesures | Statuts et écarts cumulés, synthèse pays, contrôle de sélection |
+| `10_Presentation_Measures.dax` | 26 mesures | Couleurs, calendrier, contexte et indicateurs de la fiche projet |
 
-Ces mesures sont destinées aux titres dynamiques, cartes de texte, info-bulles et encadrés de synthèse. Même `Data Period` est de type texte, car la mesure concatène deux dates dans une phrase.
+### Dossiers d’affichage « Présentation » et « Pilotage »
 
-## 11. Fichier 06 • Rôles RLS de démonstration
+Toutes les mesures restent dans **la même table `_Measures`**. Deux dossiers d’affichage organisent les mesures : **Présentation** contient 28 mesures de synthèse, statuts et contexte ; **Pilotage** contient 26 mesures de détail, planning et couleurs. Les 58 autres mesures restent à la racine de `_Measures`. Le dossier `Pilotage` regroupe les mesures du fichier `10_Presentation_Measures.dax` ; le nom du fichier indique leur fonction et ne fixe pas leur dossier dans Power BI. Ces dossiers ne créent ni table de données supplémentaire ni relation.
 
-Ces expressions ne sont ni des colonnes ni des mesures.
+- `Phase … Color`, `Phase Severity Color` et `Portfolio Cost Color` renvoient une couleur utilisable par la mise en forme conditionnelle.
+- `Project Start`, `Project Planned Finish`, `Project Calculated Finish` et `Project Finish Variance Days` présentent les dates et le décalage du projet sélectionné.
+- `Planning First Start` et `Planning Last Finish` affichent les bornes du planning dans le périmètre filtré.
+- Les mesures `Detail Planned …`, `Detail Actual …`, `Detail Late Phases` et `Detail Duration Alert Phases` conditionnent l’affichage des cartes à la sélection d’un seul projet ; elles réutilisent les mesures de base.
+- `Detail Country Rank` calcule un classement du pays sur le périmètre mondial accessible, indépendamment du filtre du projet sélectionné.
+- Les mesures de contexte et de synthèse produisent des textes adaptés à la sélection : `Detail Project Context`, `Detail Deadline Summary`, `Detail Deliverables Summary`, `Detail Summary`, `Alert Page Summary` et `Planning Summary`.
 
-1. Ouvrir **Modélisation > Gérer les rôles**.
-2. Créer un nouveau rôle.
-3. Lui donner exactement le nom indiqué ci-dessous.
-4. Sélectionner `Dim_Project`.
-5. Copier uniquement l'expression correspondant au rôle.
-6. Enregistrer, puis tester avec **Modélisation > Voir comme**.
+Les libellés français d’une vignette ou d’une colonne peuvent différer du nom technique de la mesure. Par exemple, « Projets suivis » affiche `Total Projects`. Modifier ce libellé dans un visuel ne renomme pas la mesure dans le modèle.
 
-| Ordre | Nom du rôle | Table filtrée | Expression | Périmètre de démonstration |
-|---:|---|---|---|---|
-| 1 | `Director_Global` | `Dim_Project` | `TRUE()` | Tous les projets, régions et pays |
-| 2 | `Director_Regional` | `Dim_Project` | `Dim_Project[Region] = "Western Europe"` | Région Western Europe et ses pays |
-| 3 | `Director_Country` | `Dim_Project` | `Dim_Project[Country] = "France"` | France uniquement |
+## Règles de calcul et interprétation
 
-Aucun compte utilisateur n'est nécessaire pour tester ces rôles dans Power BI Desktop. Après publication, l'attribution de personnes réelles se fait dans le service Power BI.
+### Phases et projets
 
-Le RLS filtre les lignes accessibles, mais ne masque pas les onglets du rapport. Les différentes pages mondiale, régionale et pays peuvent donc être conservées pour la démonstration ; les visuels afficheront uniquement les données autorisées par le rôle.
+Les colonnes de `Fact_ProjectPhase` évaluent chaque phase. Les colonnes calculées de `Dim_Project` agrègent toutes les phases d’un projet au chargement du modèle. Les pourcentages cumulés sont calculés à partir des sommes ; ce ne sont pas des moyennes des pourcentages de phase.
 
-## 12. Fichier 07 • Détail projet et performance pays
+- Durée / coût : `(réalisé − prévu) / prévu`. Alerte dès **+15 %**.
+- Livrables : `(réalisé − prévu) / prévu`. Alerte dès **−15 %**.
+- `Projects in Alert` compte les projets en **alerte de durée cumulée** ; `Alert Project Rate` rapporte ce nombre aux projets évaluables en durée : `[Total Projects] − [Duration Unknown Projects]`.
+- `Overall Alert Projects` compte les projets présentant au moins un critère cumulé en alerte (durée, coût ou livrables).
+- `Projects on Track` correspond au statut de durée « Hors alerte ». `Duration Unknown Projects` conserve les cas non évaluables ; ils ne sont pas automatiquement considérés conformes.
+- `Late Phases` compte les phases dont la fin calculée dépasse la fin prévue de plus de zéro jour ; `Duration Alert Phases` applique le seuil relatif de +15 %. Ces indicateurs répondent à des questions différentes.
+- `Alert_Count` vaut 0, 1, 2 ou 3 selon le nombre de critères de phase en alerte. `Alert_Severity` donne Conforme, À surveiller, Élevée ou Critique. Une phase peut cumuler plusieurs types d’alerte : les comptages par type ne doivent pas être additionnés pour obtenir un nombre de phases distinctes.
 
-Toutes les formules de ce fichier sont des **mesures**. Elles doivent être créées dans `_Measures` avec **Nouvelle mesure**, dans l'ordre du fichier.
+« Hors alerte » signifie que le seuil n’est pas atteint ; cela peut inclure un petit dépassement. Les contrôles de valeurs absentes et de dénominateurs non positifs sont définis dans les formules. Les comptages explicitement entourés de `COALESCE` affichent zéro lorsque leur résultat est vide ; les indicateurs non évaluables peuvent rester vides.
 
-Prérequis : les fichiers 01 à 05 doivent déjà être en place. Ces nouvelles mesures utilisent notamment `Deadline_Variance_Days_Phase`, `Total Phases`, `Selected Project`, les écarts de performance et le taux de réalisation des livrables.
+### Planning et filtres
 
-| Ordre | Nom exact | Type de données | Format | Décimales | Table principale | Utilisation |
-|---:|---|---|---|---:|---|---|
-| 1 | `Late Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Compter les phases dont l'écart de délai est strictement positif |
-| 2 | `Early Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Compter les phases terminées en avance |
-| 3 | `On Time Deadline Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Compter les phases terminées exactement à la date prévue |
-| 4 | `Late Phase Rate` | Nombre décimal | Pourcentage | 1 | `_Measures` | Part des phases en retard dans le périmètre courant |
-| 5 | `Average Delay Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Retard moyen calculé uniquement sur les phases en retard |
-| 6 | `Average Advance Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Avance moyenne absolue calculée uniquement sur les phases en avance |
-| 7 | `Delay Exposure Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Somme des jours de retard positifs divisée par toutes les phases |
-| 8 | `Advance Exposure Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Somme absolue des jours d'avance divisée par toutes les phases |
-| 9 | `Country Late Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases en retard du pays, indépendamment du projet sélectionné |
-| 10 | `Country Early Phases` | Nombre entier | Nombre entier | 0 | `_Measures` | Phases en avance du pays, indépendamment du projet sélectionné |
-| 11 | `Country Late Phase Rate` | Nombre décimal | Pourcentage | 1 | `_Measures` | Taux de phases en retard du pays |
-| 12 | `Country Average Delay Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Retard moyen des phases en retard du pays |
-| 13 | `Country Average Advance Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Avance moyenne des phases en avance du pays |
-| 14 | `Country Delay Exposure Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Exposition au retard du pays sans compensation par les avances |
-| 15 | `Country Advance Exposure Days` | Nombre décimal | Nombre décimal | 1 | `_Measures` | Exposition à l'avance du pays sans compensation par les retards |
-| 16 | `Countries Analyzed` | Nombre entier | Nombre entier | 0 | `_Measures` | Nombre de pays visibles dans le périmètre autorisé |
-| 17 | `Most Delayed Country` | Texte | Général | — | `_Measures` | Pays ayant la plus forte exposition au retard et valeur associée |
-| 18 | `Most Advanced Country` | Texte | Général | — | `_Measures` | Pays ayant la plus forte exposition à l'avance et valeur associée |
-| 19 | `Selected Project Context` | Texte | Général | — | `_Measures` | Projet, pays, région et type de projet sélectionnés |
-| 20 | `Selected Project Detail Narrative` | Texte | Général | — | `_Measures` | Diagnostic textuel du projet sélectionné |
-| 21 | `Selected Country Delay Rank` | Nombre entier | Nombre entier | 0 | `_Measures` | Rang du pays selon son exposition au retard |
-| 22 | `Selected Country Rank Label` | Texte | Général | — | `_Measures` | Libellé combinant le pays, son rang et le nombre de pays comparés |
+La barre du Gantt projet va du premier début à la dernière fin prévue. Cette étendue calendaire diffère de la somme des durées lorsque les phases se chevauchent. La dernière fin calculée n’est pas une date de clôture saisie. Aucun taux d’avancement temporel n’est déduit arbitrairement de ces données.
 
-### Règles d'interprétation
+Le filtre de date de **Vue d’ensemble** et **Planning et Gantt** porte sur le début des projets. Celui d’**Analyse des alertes** porte sur le début des phases. Les statuts cumulés des projets restent évalués sur leur cycle complet. L’évolution mensuelle regroupe les phases par mois de début ; elle ne constitue pas un historique de leurs statuts successifs.
 
-- `Deadline_Variance_Days_Phase > 0` signifie **retard**, `< 0` signifie **avance** et `= 0` signifie **à l'heure**.
-- `Average Delay Days` et `Average Advance Days` calculent leur moyenne uniquement sur les phases concernées.
-- Les scores d'exposition répartissent séparément les jours de retard et les jours d'avance sur toutes les phases. Une forte avance ne peut donc pas masquer un retard important.
-- Les mesures préfixées par `Country` retirent seulement les filtres `Project_ID` et `Project_Label`. Elles conservent les filtres de région, de pays, de date et de type de projet, ainsi que le RLS.
-- Le classement pays utilise `Country Delay Exposure Days`, puis un classement dense décroissant : le pays le plus exposé au retard obtient le rang 1.
-- Les mesures textuelles servent aux cartes, titres dynamiques, diagnostics et info-bulles des pages **Détail projet** et **Performance pays**.
+L’extraction vers **Détail projet** transmet le projet et conserve l’accès à toutes ses phases. Les indicateurs du détail sont protégés par la sélection d’un seul projet. Les mesures de rang mondial retirent les filtres analytiques prévus par leur formule ; elles ne contournent pas la sécurité RLS.
 
-## 13. Réglages de format
+### Couleurs
 
-| Famille d'objet | Réglage recommandé |
-|---|---|
-| Colonnes `*_Pct_*` | Nombre décimal, Pourcentage, 1 décimale, Résumer par Aucun |
-| Mesures dont le nom finit par `%` | Nombre décimal, Pourcentage, 1 décimale |
-| `Alert Project Rate` | Nombre décimal, Pourcentage, 1 décimale |
-| `Late Phase Rate` et `Country Late Phase Rate` | Nombre décimal, Pourcentage, 1 décimale |
-| Mesures `Average ... Days` et `... Exposure Days` | Nombre décimal, 1 décimale |
-| `Selected Country Delay Rank` et `Countries Analyzed` | Nombre entier, 0 décimale |
-| Comptages, drapeaux, coûts, durées et livrables | Nombre entier, 0 décimale |
-| Coûts | Séparateur de milliers, sans devise inventée |
-| Dates | Date, format `dd/MM/yyyy` |
-| Statuts, récits, titres et couleurs | Texte, format Général |
-| Colonnes calculées | **Résumer par : Aucun** |
-| Mesures | Le réglage « Résumer par » ne s'applique pas |
+Les Gantt, la carte et les statuts de durée utilisent rose/rouge pour l’alerte, vert sous le seuil et gris pour un statut non évaluable. Le texte de statut et la légende complètent la couleur. Dans les graphiques qui comparent les **types** d’alerte, cyan = coût, violet = durée et rose = livrables : ces couleurs identifient les catégories.
 
-## 14. Contrôles attendus sans filtre
+## Utilisation du pack
 
-Après la création des fichiers 01 à 04, créer temporairement des cartes ou un tableau pour vérifier les résultats suivants :
+Si le projet fourni est déjà ouvert, il contient les mesures : il n’est pas nécessaire de les recréer. Pour consulter une formule, sélectionner sa mesure dans `_Measures`.
 
-| Contrôle | Résultat attendu |
-|---|---:|
-| `Total Projects` | 104 |
-| `Total Phases` | 520 |
-| `Cost Alert Phases` | 214 |
-| `Duration Alert Phases` | 159 |
-| `Deliverable Alert Phases` | 98 |
-| `Alert Phases` | 349 |
-| `On Track Phases` | 171 |
-| `Projects in Alert` | 102 |
-| `Projects on Track` | 2 |
-| `Critical Alert Phases` | 14 |
-| `High Alert Phases` | 94 |
-| `Watch Alert Phases` | 241 |
+Pour une reconstruction manuelle :
 
-Totaux complémentaires :
+1. Préparer les trois tables métier et les deux relations.
+2. Créer `_Measures` avec le fichier `00`, puis masquer `_Placeholder`.
+3. Créer les colonnes du fichier `01` dans `Fact_ProjectPhase`, puis celles du fichier `08` dans `Dim_Project`, dans l’ordre de chaque fichier.
+4. Créer les mesures dans `_Measures`, en suivant l’ordre de dépendances donné en fin de document. Les fichiers sont regroupés par fonction, pas par ordre strict de création.
+5. Copier un seul bloc `Nom = formule` dans **Nouvelle mesure** ou **Nouvelle colonne**. Les commentaires et définitions suivantes ne font pas partie de ce bloc.
+6. Appliquer le format indiqué dans le catalogue. Affecter les dossiers d’affichage indiqués dans le catalogue ci-dessous. Les fichiers thématiques et les dossiers d’affichage sont deux organisations complémentaires.
+7. Créer les rôles du fichier `06` et les tester avec **Voir comme**. Les rôles France et Western Europe sont des exemples statiques.
 
-| Indicateur | Prévisionnel | Réel | Écart agrégé |
-|---|---:|---:|---:|
-| Coût | 56 108 000 | 60 200 800 | +7,3 % |
-| Durée | 52 722 | 45 641 | -13,4 % |
-| Livrables | 8 735 | 7 819 | -10,5 % |
+Les mesures contenant `REMOVEFILTERS`, `CALCULATE`, `HASONEVALUE` ou `SELECTEDVALUE` doivent conserver leur formule complète pour préserver le contexte de calcul.
 
-Il est normal qu'un écart agrégé soit inférieur à 15 % alors que de nombreuses phases sont en alerte : le seuil est évalué séparément pour chaque projet-phase.
+## Contrôles de cohérence
 
-Contrôles complémentaires du fichier 07 :
+Les formules de ce pack correspondent aux définitions TMDL du projet fourni, sans renommage des mesures existantes. La vérification des fichiers ne remplace pas l’exécution dans Power BI Desktop.
 
-- `Late Phases + Early Phases + On Time Deadline Phases` doit toujours être égal à `Total Phases` dans le même contexte de filtre ;
-- `Late Phase Rate` doit être égal à `Late Phases / Total Phases` ;
-- les mesures `Country ...` doivent rester limitées au pays ou à la région autorisés lors d'un test RLS ;
-- sélectionner un seul projet doit alimenter `Selected Project Context`, `Selected Project Detail Narrative` et le rang de son pays.
+Avec les données et captures de référence, sans filtre, les repères sont **104 projets**, **8 alertes de durée cumulée**, environ **7,7 %** de projets en alerte de durée et **159 phases en alerte de durée**. Ces nombres servent à vérifier le rapport ; ils ne sont pas écrits dans les formules des indicateurs.
 
-## 15. Sources officielles Microsoft
+Tester également un pays avec plusieurs projets, l’extraction d’un seul projet, les phases hors alerte, les cas non évaluables et les rôles RLS.
 
-- [Présentation du langage DAX](https://learn.microsoft.com/en-us/dax/dax-overview)
-- [Création et utilisation des mesures dans Power BI Desktop](https://learn.microsoft.com/en-us/power-bi/transform-model/desktop-measures)
-- [Fonction `DIVIDE`](https://learn.microsoft.com/en-us/dax/divide-function-dax)
-- [Fonction `CALCULATE`](https://learn.microsoft.com/en-us/dax/calculate-function-dax)
-- [Fonction `DISTINCTCOUNT`](https://learn.microsoft.com/en-us/dax/distinctcount-function-dax)
-- [Sécurité au niveau des lignes • RLS](https://learn.microsoft.com/en-us/fabric/security/service-admin-row-level-security)
+## Catalogue des mesures
 
-## 16. Étape suivante après le DAX
+Le format est celui enregistré dans le modèle ; « Général / texte » signifie qu’aucun format explicite n’est défini. Les noms ci-dessous sont les noms techniques exacts.
 
-Une fois les mesures et rôles validés :
+### 02_Portfolio_Measures.dax
 
-1. construire les pages Vue d'ensemble, Analyse des alertes, Planning et Gantt, Détail projet et Performance pays.
-2. créer les KPI, cartes, graphiques d'écart et tableaux de phases.
-3. utiliser `Alert Color` pour la mise en forme conditionnelle.
-4. utiliser les mesures des fichiers 05 et 07 pour les titres, récits dynamiques et analyses par pays.
-5. tester les filtres et chaque rôle avec **Voir comme**.
+| Mesure | Format | Dossier d’affichage |
+|---|---|---|
+| `Total Projects` | `0` | Présentation |
+| `Total Phases` | `0` | Présentation |
+| `Planned Cost` | `#,0` | Racine de `_Measures` |
+| `Actual Cost` | `#,0` | Racine de `_Measures` |
+| `Planned Duration` | `0` | Racine de `_Measures` |
+| `Actual Duration` | `0` | Racine de `_Measures` |
+| `Planned Deliverables` | `0` | Racine de `_Measures` |
+| `Actual Deliverables` | `0` | Racine de `_Measures` |
+| `First Project Start Date` | `General Date` | Racine de `_Measures` |
+| `Last Planned End Date` | `General Date` | Racine de `_Measures` |
+| `Last Actual End Date` | `General Date` | Racine de `_Measures` |
+
+### 03_Performance_Variance_Measures.dax
+
+| Mesure | Format | Dossier d’affichage |
+|---|---|---|
+| `Cost Variance` | `#,0` | Racine de `_Measures` |
+| `Cost Variance %` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Cost Performance Status` | `Général / texte` | Racine de `_Measures` |
+| `Duration Variance` | `0` | Racine de `_Measures` |
+| `Duration Variance %` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Duration Performance Status` | `Général / texte` | Racine de `_Measures` |
+| `Deliverable Variance` | `0` | Racine de `_Measures` |
+| `Deliverable Variance %` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Deliverable Completion Rate` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Deliverable Performance Status` | `Général / texte` | Racine de `_Measures` |
+
+### 04_Alert_Measures.dax
+
+| Mesure | Format | Dossier d’affichage |
+|---|---|---|
+| `Cost Alert Phases` | `0` | Racine de `_Measures` |
+| `Duration Alert Phases` | `0` | Racine de `_Measures` |
+| `Deliverable Alert Phases` | `0` | Racine de `_Measures` |
+| `Alert Phases` | `0` | Racine de `_Measures` |
+| `On Track Phases` | `0` | Racine de `_Measures` |
+| `Projects in Alert` | `0` | Présentation |
+| `Projects on Track` | `0` | Présentation |
+| `Alert Project Rate` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Projects with Cost Alert` | `0` | Présentation |
+| `Projects with Duration Alert` | `0` | Présentation |
+| `Projects with Deliverable Alert` | `0` | Présentation |
+| `Critical Alert Phases` | `0` | Racine de `_Measures` |
+| `High Alert Phases` | `0` | Racine de `_Measures` |
+| `Watch Alert Phases` | `0` | Présentation |
+| `Alert Color` | `Général / texte` | Racine de `_Measures` |
+
+### 05_Reporting_and_Storytelling_Measures.dax
+
+| Mesure | Format | Dossier d’affichage |
+|---|---|---|
+| `Selected Scope` | `Général / texte` | Présentation |
+| `Visible Scope Level` | `Général / texte` | Présentation |
+| `Selected Project` | `Général / texte` | Présentation |
+| `Data Period` | `Général / texte` | Racine de `_Measures` |
+| `Executive Narrative` | `Général / texte` | Racine de `_Measures` |
+| `Performance Narrative` | `Général / texte` | Racine de `_Measures` |
+| `Selected Project Alert Summary` | `Général / texte` | Présentation |
+
+### 07_Detail_And_Country_Performance.dax
+
+| Mesure | Format | Dossier d’affichage |
+|---|---|---|
+| `Late Phases` | `0` | Racine de `_Measures` |
+| `Early Phases` | `0` | Racine de `_Measures` |
+| `On Time Deadline Phases` | `0` | Racine de `_Measures` |
+| `Late Phase Rate` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Average Delay Days` | `0.0` | Racine de `_Measures` |
+| `Average Advance Days` | `0.0` | Racine de `_Measures` |
+| `Delay Exposure Days` | `0.0` | Racine de `_Measures` |
+| `Advance Exposure Days` | `0.0` | Racine de `_Measures` |
+| `Country Late Phases` | `0` | Racine de `_Measures` |
+| `Country Early Phases` | `0` | Racine de `_Measures` |
+| `Country Late Phase Rate` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Country Average Delay Days` | `0.0` | Racine de `_Measures` |
+| `Country Average Advance Days` | `0.0` | Racine de `_Measures` |
+| `Country Delay Exposure Days` | `0.0` | Racine de `_Measures` |
+| `Country Advance Exposure Days` | `0.0` | Racine de `_Measures` |
+| `Countries Analyzed` | `0` | Racine de `_Measures` |
+| `Most Delayed Country` | `Général / texte` | Racine de `_Measures` |
+| `Most Advanced Country` | `Général / texte` | Racine de `_Measures` |
+| `Selected Project Context` | `Général / texte` | Présentation |
+| `Selected Project Detail Narrative` | `Général / texte` | Présentation |
+| `Selected Country Delay Rank` | `0` | Présentation |
+| `Selected Country Rank Label` | `Général / texte` | Présentation |
+
+### 09_Project_Level_Measures.dax
+
+| Mesure | Format | Dossier d’affichage |
+|---|---|---|
+| `Duration Unknown Projects` | `0` | Racine de `_Measures` |
+| `Overall Alert Projects` | `0` | Racine de `_Measures` |
+| `Overall On Track Projects` | `0` | Racine de `_Measures` |
+| `Overall Unknown Projects` | `0` | Racine de `_Measures` |
+| `Overall Alert Project Rate` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Project Duration Variance %` | `0.0\ %;-0.0\ %;0.0\ %` | Présentation |
+| `Project Cost Variance %` | `0.0\ %;-0.0\ %;0.0\ %` | Présentation |
+| `Project Deliverable Variance %` | `0.0\ %;-0.0\ %;0.0\ %` | Présentation |
+| `Project Duration Status` | `Général / texte` | Présentation |
+| `Project Cost Status` | `Général / texte` | Présentation |
+| `Project Deliverable Status` | `Général / texte` | Présentation |
+| `Project Overall Status` | `Général / texte` | Présentation |
+| `Project Duration Color` | `Général / texte` | Présentation |
+| `Project Cost Color` | `Général / texte` | Présentation |
+| `Project Deliverable Color` | `Général / texte` | Présentation |
+| `Country Duration Status` | `Général / texte` | Racine de `_Measures` |
+| `Country Duration Color` | `Général / texte` | Racine de `_Measures` |
+| `Portfolio Countries` | `0` | Racine de `_Measures` |
+| `Max Project Duration Variance %` | `0.0\ %;-0.0\ %;0.0\ %` | Racine de `_Measures` |
+| `Project Detail Available` | `0` | Présentation |
+| `Project Detail Instruction` | `Général / texte` | Présentation |
+
+### 10_Presentation_Measures.dax
+
+| Mesure | Format | Dossier d’affichage |
+|---|---|---|
+| `Detail Planned Cost` | `#,0` | Pilotage |
+| `Detail Project Context` | `Général / texte` | Pilotage |
+| `Detail Actual Cost` | `#,0` | Pilotage |
+| `Detail Planned Duration` | `0" j"` | Pilotage |
+| `Detail Actual Duration` | `0" j"` | Pilotage |
+| `Detail Late Phases` | `0` | Pilotage |
+| `Detail Summary` | `Général / texte` | Pilotage |
+| `Detail Deadline Summary` | `Général / texte` | Pilotage |
+| `Detail Country Rank` | `Général / texte` | Pilotage |
+| `Detail Deliverables Summary` | `Général / texte` | Pilotage |
+| `Project Start` | `dd/MM/yyyy` | Pilotage |
+| `Project Planned Finish` | `dd/MM/yyyy` | Pilotage |
+| `Project Finish Variance Days` | `+0;-0;0` | Pilotage |
+| `Project Calculated Finish` | `dd/MM/yyyy` | Pilotage |
+| `Planning Last Finish` | `dd/MM/yyyy` | Pilotage |
+| `Planning First Start` | `dd/MM/yyyy` | Pilotage |
+| `Planning Summary` | `Général / texte` | Pilotage |
+| `Alert Page Summary` | `Général / texte` | Pilotage |
+| `Detail Actual Deliverables` | `0` | Pilotage |
+| `Phase Cost Color` | `Général / texte` | Pilotage |
+| `Phase Deliverable Color` | `Général / texte` | Pilotage |
+| `Phase Duration Color` | `Général / texte` | Pilotage |
+| `Phase Severity Color` | `Général / texte` | Pilotage |
+| `Portfolio Cost Color` | `Général / texte` | Pilotage |
+| `Detail Duration Alert Phases` | `0` | Pilotage |
+| `Detail Planned Deliverables` | `0` | Pilotage |
+
+## Catalogue des colonnes calculées
+
+### Fact_ProjectPhase
+
+| Colonne | Type | Format |
+|---|---|---|
+| `Cost_Variance_Pct_Phase` |  | `0.0\ %;-0.0\ %;0.0\ %` |
+| `Duration_Variance_Pct_Phase` |  | `0.0\ %;-0.0\ %;0.0\ %` |
+| `Deliverable_Variance_Pct_Phase` |  | `0.0\ %;-0.0\ %;0.0\ %` |
+| `Cost_Alert_Flag` |  | `0` |
+| `Duration_Alert_Flag` |  | `0` |
+| `Deliverable_Alert_Flag` |  | `0` |
+| `Alert_Count` |  | `0` |
+| `Alert_Flag` |  | `0` |
+| `Alert_Severity` |  | `Général` |
+| `Deadline_Variance_Days_Phase` |  | `0` |
+| `Phase_Duration_Status` |  | `Général` |
+| `Phase_Cost_Status` |  | `Général` |
+| `Phase_Deliverable_Status` |  | `Général` |
+
+Les colonnes calculées descriptives, de statut et de pourcentage ne doivent pas être additionnées dans les visuels. Les mesures réalisent les agrégations nécessaires.
+
+### Dim_Project
+
+| Colonne | Type | Format |
+|---|---|---|
+| `Project_Phase_Count` |  | `0` |
+| `Project_Start_Date` |  | `yyyy-MM-dd` |
+| `Project_Planned_End_Date` |  | `yyyy-MM-dd` |
+| `Project_Actual_End_Date_Derived` |  | `yyyy-MM-dd` |
+| `Project_Planned_Span_Days` |  | `0` |
+| `Project_Start_Month` |  | `yyyy-MM` |
+| `Project_Duration_Variance_Pct` |  | `0.0\ %;-0.0\ %;0.0\ %` |
+| `Project_Cost_Variance_Pct` |  | `0.0\ %;-0.0\ %;0.0\ %` |
+| `Project_Deliverable_Variance_Pct` |  | `0.0\ %;-0.0\ %;0.0\ %` |
+| `Project_Duration_Status` |  | `Général` |
+| `Project_Cost_Status` |  | `Général` |
+| `Project_Deliverable_Status` |  | `Général` |
+| `Project_Alert_Status` |  | `Général` |
+| `Country_Map_Legend` |  | `Général` |
+
+Les colonnes calculées descriptives, de statut et de pourcentage ne doivent pas être additionnées dans les visuels. Les mesures réalisent les agrégations nécessaires.
+
+## Ordre de création des mesures
+
+Cet ordre respecte les dépendances entre les 112 mesures. Le fichier associé permet de retrouver chaque formule.
+
+| Ordre | Mesure | Fichier |
+|---:|---|---|
+| 1 | `Total Projects` | `02_Portfolio_Measures.dax` |
+| 2 | `Total Phases` | `02_Portfolio_Measures.dax` |
+| 3 | `Planned Cost` | `02_Portfolio_Measures.dax` |
+| 4 | `Actual Cost` | `02_Portfolio_Measures.dax` |
+| 5 | `Planned Duration` | `02_Portfolio_Measures.dax` |
+| 6 | `Actual Duration` | `02_Portfolio_Measures.dax` |
+| 7 | `Planned Deliverables` | `02_Portfolio_Measures.dax` |
+| 8 | `Actual Deliverables` | `02_Portfolio_Measures.dax` |
+| 9 | `First Project Start Date` | `02_Portfolio_Measures.dax` |
+| 10 | `Last Planned End Date` | `02_Portfolio_Measures.dax` |
+| 11 | `Last Actual End Date` | `02_Portfolio_Measures.dax` |
+| 12 | `Selected Scope` | `05_Reporting_and_Storytelling_Measures.dax` |
+| 13 | `Visible Scope Level` | `05_Reporting_and_Storytelling_Measures.dax` |
+| 14 | `Selected Project` | `05_Reporting_and_Storytelling_Measures.dax` |
+| 15 | `Average Delay Days` | `07_Detail_And_Country_Performance.dax` |
+| 16 | `Average Advance Days` | `07_Detail_And_Country_Performance.dax` |
+| 17 | `Countries Analyzed` | `07_Detail_And_Country_Performance.dax` |
+| 18 | `Project Duration Variance %` | `09_Project_Level_Measures.dax` |
+| 19 | `Project Cost Variance %` | `09_Project_Level_Measures.dax` |
+| 20 | `Project Deliverable Variance %` | `09_Project_Level_Measures.dax` |
+| 21 | `Project Duration Status` | `09_Project_Level_Measures.dax` |
+| 22 | `Project Cost Status` | `09_Project_Level_Measures.dax` |
+| 23 | `Project Deliverable Status` | `09_Project_Level_Measures.dax` |
+| 24 | `Project Overall Status` | `09_Project_Level_Measures.dax` |
+| 25 | `Project Start` | `10_Presentation_Measures.dax` |
+| 26 | `Project Planned Finish` | `10_Presentation_Measures.dax` |
+| 27 | `Project Calculated Finish` | `10_Presentation_Measures.dax` |
+| 28 | `Planning Last Finish` | `10_Presentation_Measures.dax` |
+| 29 | `Planning First Start` | `10_Presentation_Measures.dax` |
+| 30 | `Phase Cost Color` | `10_Presentation_Measures.dax` |
+| 31 | `Phase Deliverable Color` | `10_Presentation_Measures.dax` |
+| 32 | `Phase Duration Color` | `10_Presentation_Measures.dax` |
+| 33 | `Phase Severity Color` | `10_Presentation_Measures.dax` |
+| 34 | `Cost Variance` | `03_Performance_Variance_Measures.dax` |
+| 35 | `Duration Variance` | `03_Performance_Variance_Measures.dax` |
+| 36 | `Deliverable Variance` | `03_Performance_Variance_Measures.dax` |
+| 37 | `Deliverable Completion Rate` | `03_Performance_Variance_Measures.dax` |
+| 38 | `Cost Alert Phases` | `04_Alert_Measures.dax` |
+| 39 | `Duration Alert Phases` | `04_Alert_Measures.dax` |
+| 40 | `Deliverable Alert Phases` | `04_Alert_Measures.dax` |
+| 41 | `Alert Phases` | `04_Alert_Measures.dax` |
+| 42 | `Projects in Alert` | `04_Alert_Measures.dax` |
+| 43 | `Projects on Track` | `04_Alert_Measures.dax` |
+| 44 | `Projects with Cost Alert` | `04_Alert_Measures.dax` |
+| 45 | `Projects with Deliverable Alert` | `04_Alert_Measures.dax` |
+| 46 | `Critical Alert Phases` | `04_Alert_Measures.dax` |
+| 47 | `High Alert Phases` | `04_Alert_Measures.dax` |
+| 48 | `Watch Alert Phases` | `04_Alert_Measures.dax` |
+| 49 | `Data Period` | `05_Reporting_and_Storytelling_Measures.dax` |
+| 50 | `Late Phases` | `07_Detail_And_Country_Performance.dax` |
+| 51 | `Early Phases` | `07_Detail_And_Country_Performance.dax` |
+| 52 | `On Time Deadline Phases` | `07_Detail_And_Country_Performance.dax` |
+| 53 | `Delay Exposure Days` | `07_Detail_And_Country_Performance.dax` |
+| 54 | `Advance Exposure Days` | `07_Detail_And_Country_Performance.dax` |
+| 55 | `Country Average Delay Days` | `07_Detail_And_Country_Performance.dax` |
+| 56 | `Country Average Advance Days` | `07_Detail_And_Country_Performance.dax` |
+| 57 | `Selected Project Context` | `07_Detail_And_Country_Performance.dax` |
+| 58 | `Duration Unknown Projects` | `09_Project_Level_Measures.dax` |
+| 59 | `Overall Alert Projects` | `09_Project_Level_Measures.dax` |
+| 60 | `Overall On Track Projects` | `09_Project_Level_Measures.dax` |
+| 61 | `Overall Unknown Projects` | `09_Project_Level_Measures.dax` |
+| 62 | `Project Duration Color` | `09_Project_Level_Measures.dax` |
+| 63 | `Project Cost Color` | `09_Project_Level_Measures.dax` |
+| 64 | `Project Deliverable Color` | `09_Project_Level_Measures.dax` |
+| 65 | `Portfolio Countries` | `09_Project_Level_Measures.dax` |
+| 66 | `Max Project Duration Variance %` | `09_Project_Level_Measures.dax` |
+| 67 | `Project Detail Available` | `09_Project_Level_Measures.dax` |
+| 68 | `Project Finish Variance Days` | `10_Presentation_Measures.dax` |
+| 69 | `Cost Variance %` | `03_Performance_Variance_Measures.dax` |
+| 70 | `Duration Variance %` | `03_Performance_Variance_Measures.dax` |
+| 71 | `Deliverable Variance %` | `03_Performance_Variance_Measures.dax` |
+| 72 | `On Track Phases` | `04_Alert_Measures.dax` |
+| 73 | `Alert Project Rate` | `04_Alert_Measures.dax` |
+| 74 | `Projects with Duration Alert` | `04_Alert_Measures.dax` |
+| 75 | `Alert Color` | `04_Alert_Measures.dax` |
+| 76 | `Selected Project Alert Summary` | `05_Reporting_and_Storytelling_Measures.dax` |
+| 77 | `Late Phase Rate` | `07_Detail_And_Country_Performance.dax` |
+| 78 | `Country Late Phases` | `07_Detail_And_Country_Performance.dax` |
+| 79 | `Country Early Phases` | `07_Detail_And_Country_Performance.dax` |
+| 80 | `Country Delay Exposure Days` | `07_Detail_And_Country_Performance.dax` |
+| 81 | `Country Advance Exposure Days` | `07_Detail_And_Country_Performance.dax` |
+| 82 | `Selected Project Detail Narrative` | `07_Detail_And_Country_Performance.dax` |
+| 83 | `Overall Alert Project Rate` | `09_Project_Level_Measures.dax` |
+| 84 | `Country Duration Status` | `09_Project_Level_Measures.dax` |
+| 85 | `Country Duration Color` | `09_Project_Level_Measures.dax` |
+| 86 | `Project Detail Instruction` | `09_Project_Level_Measures.dax` |
+| 87 | `Detail Planned Cost` | `10_Presentation_Measures.dax` |
+| 88 | `Detail Project Context` | `10_Presentation_Measures.dax` |
+| 89 | `Detail Actual Cost` | `10_Presentation_Measures.dax` |
+| 90 | `Detail Planned Duration` | `10_Presentation_Measures.dax` |
+| 91 | `Detail Actual Duration` | `10_Presentation_Measures.dax` |
+| 92 | `Detail Late Phases` | `10_Presentation_Measures.dax` |
+| 93 | `Detail Summary` | `10_Presentation_Measures.dax` |
+| 94 | `Detail Deadline Summary` | `10_Presentation_Measures.dax` |
+| 95 | `Detail Country Rank` | `10_Presentation_Measures.dax` |
+| 96 | `Detail Deliverables Summary` | `10_Presentation_Measures.dax` |
+| 97 | `Planning Summary` | `10_Presentation_Measures.dax` |
+| 98 | `Alert Page Summary` | `10_Presentation_Measures.dax` |
+| 99 | `Detail Actual Deliverables` | `10_Presentation_Measures.dax` |
+| 100 | `Detail Duration Alert Phases` | `10_Presentation_Measures.dax` |
+| 101 | `Detail Planned Deliverables` | `10_Presentation_Measures.dax` |
+| 102 | `Cost Performance Status` | `03_Performance_Variance_Measures.dax` |
+| 103 | `Duration Performance Status` | `03_Performance_Variance_Measures.dax` |
+| 104 | `Deliverable Performance Status` | `03_Performance_Variance_Measures.dax` |
+| 105 | `Executive Narrative` | `05_Reporting_and_Storytelling_Measures.dax` |
+| 106 | `Performance Narrative` | `05_Reporting_and_Storytelling_Measures.dax` |
+| 107 | `Country Late Phase Rate` | `07_Detail_And_Country_Performance.dax` |
+| 108 | `Most Delayed Country` | `07_Detail_And_Country_Performance.dax` |
+| 109 | `Most Advanced Country` | `07_Detail_And_Country_Performance.dax` |
+| 110 | `Selected Country Delay Rank` | `07_Detail_And_Country_Performance.dax` |
+| 111 | `Portfolio Cost Color` | `10_Presentation_Measures.dax` |
+| 112 | `Selected Country Rank Label` | `07_Detail_And_Country_Performance.dax` |
+
+## Références
+
+- [Modèle en étoile Power BI](https://learn.microsoft.com/en-us/power-bi/guidance/star-schema)
+- [Définition des projets Power BI](https://learn.microsoft.com/en-us/power-bi/developer/projects/projects-report)
+- [Extraction vers le détail projet](https://learn.microsoft.com/en-us/power-bi/create-reports/desktop-drillthrough)

@@ -264,6 +264,42 @@ table Fact_ProjectPhase
 
 		annotation SummarizationSetBy = Automatic
 
+	column Phase_Duration_Status =
+			VAR Planned = Fact_ProjectPhase[Planned_Duration]
+			VAR Actual = Fact_ProjectPhase[Actual_Duration]
+			RETURN
+			    SWITCH ( TRUE (),
+			        ISBLANK ( Planned ) || Planned <= 0 || ISBLANK ( Actual ) || Actual < 0, "Non évaluable",
+			        DIVIDE ( Actual - Planned, Planned ) >= 15 / 100, "Alerte",
+			        "Hors alerte"
+			    )
+		lineageTag: ecccc03c-c6c8-44f4-bf16-ddaa3d3a3417
+		summarizeBy: none
+
+	column Phase_Cost_Status =
+			VAR Planned = Fact_ProjectPhase[Planned_Cost]
+			VAR Actual = Fact_ProjectPhase[Actual_Cost]
+			RETURN
+			    SWITCH ( TRUE (),
+			        ISBLANK ( Planned ) || Planned <= 0 || ISBLANK ( Actual ) || Actual < 0, "Non évaluable",
+			        DIVIDE ( Actual - Planned, Planned ) >= 15 / 100, "Alerte",
+			        "Hors alerte"
+			    )
+		lineageTag: bfcf9a98-179a-4a77-bfce-42ff43964ea4
+		summarizeBy: none
+
+	column Phase_Deliverable_Status =
+			VAR Planned = Fact_ProjectPhase[Planned_Deliverables]
+			VAR Actual = Fact_ProjectPhase[Actual_Deliverables]
+			RETURN
+			    SWITCH ( TRUE (),
+			        ISBLANK ( Planned ) || Planned <= 0 || ISBLANK ( Actual ) || Actual < 0, "Non évaluable",
+			        DIVIDE ( Actual - Planned, Planned ) <= -15 / 100, "Alerte",
+			        "Hors alerte"
+			    )
+		lineageTag: 93aefb99-4034-4e12-b5a1-a44a08d7f41b
+		summarizeBy: none
+
 	partition Fact_ProjectPhase = m
 		mode: import
 		source =

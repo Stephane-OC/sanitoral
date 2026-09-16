@@ -50,6 +50,222 @@ table Dim_Project
 
 		annotation SummarizationSetBy = Automatic
 
+	column Project_Phase_Count =
+			VAR ProjectId = Dim_Project[Project_ID]
+			RETURN
+			    COUNTROWS (
+			        FILTER (
+			            ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID] ),
+			            Fact_ProjectPhase[Project_ID] = ProjectId
+			        )
+			    )
+		formatString: 0
+		lineageTag: bde703ea-4269-4834-8c63-f164b818939b
+		summarizeBy: none
+
+	column Project_Start_Date =
+			VAR ProjectId = Dim_Project[Project_ID]
+			VAR Phases = FILTER (
+			    ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID], Fact_ProjectPhase[Start_Date] ),
+			    Fact_ProjectPhase[Project_ID] = ProjectId
+			)
+			RETURN
+			    IF (
+			        COUNTROWS ( Phases ) > 0
+			            && COUNTROWS ( FILTER ( Phases, ISBLANK ( Fact_ProjectPhase[Start_Date] ) ) ) = 0,
+			        MINX ( Phases, Fact_ProjectPhase[Start_Date] )
+			    )
+		formatString: yyyy-MM-dd
+		lineageTag: 8032dcf9-a425-4306-99b0-bd02c9fdb536
+		summarizeBy: none
+
+	column Project_Planned_End_Date =
+			VAR ProjectId = Dim_Project[Project_ID]
+			VAR Phases = FILTER (
+			    ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID], Fact_ProjectPhase[Planned_End_Date] ),
+			    Fact_ProjectPhase[Project_ID] = ProjectId
+			)
+			RETURN
+			    IF (
+			        COUNTROWS ( Phases ) > 0
+			            && COUNTROWS ( FILTER ( Phases, ISBLANK ( Fact_ProjectPhase[Planned_End_Date] ) ) ) = 0,
+			        MAXX ( Phases, Fact_ProjectPhase[Planned_End_Date] )
+			    )
+		formatString: yyyy-MM-dd
+		lineageTag: 76ab4265-7a1f-48e6-bf48-ddc275845915
+		summarizeBy: none
+
+	column Project_Actual_End_Date_Derived =
+			VAR ProjectId = Dim_Project[Project_ID]
+			VAR Phases = FILTER (
+			    ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID], Fact_ProjectPhase[Actual_End_Date] ),
+			    Fact_ProjectPhase[Project_ID] = ProjectId
+			)
+			RETURN
+			    IF (
+			        COUNTROWS ( Phases ) > 0
+			            && COUNTROWS ( FILTER ( Phases, ISBLANK ( Fact_ProjectPhase[Actual_End_Date] ) ) ) = 0,
+			        MAXX ( Phases, Fact_ProjectPhase[Actual_End_Date] )
+			    )
+		formatString: yyyy-MM-dd
+		lineageTag: 972444ab-7b6c-4a9c-82a3-ab59ee5d20fe
+		summarizeBy: none
+
+	column Project_Planned_Span_Days =
+			VAR StartDate = Dim_Project[Project_Start_Date]
+			VAR EndDate = Dim_Project[Project_Planned_End_Date]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( StartDate ) && NOT ISBLANK ( EndDate ) && EndDate >= StartDate,
+			        DATEDIFF ( StartDate, EndDate, DAY )
+			    )
+		formatString: 0
+		lineageTag: 6cd3dae4-abb5-453f-8fd6-435ec8880199
+		summarizeBy: none
+
+	column Project_Start_Month =
+			VAR StartDate = Dim_Project[Project_Start_Date]
+			RETURN
+			    IF ( NOT ISBLANK ( StartDate ), DATE ( YEAR ( StartDate ), MONTH ( StartDate ), 1 ) )
+		formatString: yyyy-MM
+		lineageTag: b077e9a2-9b83-4612-9f32-06c3b6826b76
+		summarizeBy: none
+
+	column Project_Duration_Variance_Pct =
+			VAR ProjectId = Dim_Project[Project_ID]
+			VAR Phases = FILTER (
+			    ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID],
+			        Fact_ProjectPhase[Planned_Duration], Fact_ProjectPhase[Actual_Duration] ),
+			    Fact_ProjectPhase[Project_ID] = ProjectId
+			)
+			VAR InvalidRows = COUNTROWS (
+			    FILTER ( Phases,
+			        ISBLANK ( Fact_ProjectPhase[Planned_Duration] )
+			            || Fact_ProjectPhase[Planned_Duration] <= 0
+			            || ISBLANK ( Fact_ProjectPhase[Actual_Duration] )
+			            || Fact_ProjectPhase[Actual_Duration] < 0
+			    )
+			)
+			VAR Planned = SUMX ( Phases, Fact_ProjectPhase[Planned_Duration] )
+			VAR Actual = SUMX ( Phases, Fact_ProjectPhase[Actual_Duration] )
+			RETURN
+			    IF ( COUNTROWS ( Phases ) > 0 && InvalidRows = 0, DIVIDE ( Actual - Planned, Planned ) )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: 94771f0f-98ff-4fcd-b77e-4aabf807995c
+		summarizeBy: none
+
+	column Project_Cost_Variance_Pct =
+			VAR ProjectId = Dim_Project[Project_ID]
+			VAR Phases = FILTER (
+			    ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID],
+			        Fact_ProjectPhase[Planned_Cost], Fact_ProjectPhase[Actual_Cost] ),
+			    Fact_ProjectPhase[Project_ID] = ProjectId
+			)
+			VAR InvalidRows = COUNTROWS (
+			    FILTER ( Phases,
+			        ISBLANK ( Fact_ProjectPhase[Planned_Cost] )
+			            || Fact_ProjectPhase[Planned_Cost] <= 0
+			            || ISBLANK ( Fact_ProjectPhase[Actual_Cost] )
+			            || Fact_ProjectPhase[Actual_Cost] < 0
+			    )
+			)
+			VAR Planned = SUMX ( Phases, Fact_ProjectPhase[Planned_Cost] )
+			VAR Actual = SUMX ( Phases, Fact_ProjectPhase[Actual_Cost] )
+			RETURN
+			    IF ( COUNTROWS ( Phases ) > 0 && InvalidRows = 0, DIVIDE ( Actual - Planned, Planned ) )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: 9fd6d069-3ce4-4085-8982-9aec3573603a
+		summarizeBy: none
+
+	column Project_Deliverable_Variance_Pct =
+			VAR ProjectId = Dim_Project[Project_ID]
+			VAR Phases = FILTER (
+			    ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID],
+			        Fact_ProjectPhase[Planned_Deliverables], Fact_ProjectPhase[Actual_Deliverables] ),
+			    Fact_ProjectPhase[Project_ID] = ProjectId
+			)
+			VAR InvalidRows = COUNTROWS (
+			    FILTER ( Phases,
+			        ISBLANK ( Fact_ProjectPhase[Planned_Deliverables] )
+			            || Fact_ProjectPhase[Planned_Deliverables] <= 0
+			            || ISBLANK ( Fact_ProjectPhase[Actual_Deliverables] )
+			            || Fact_ProjectPhase[Actual_Deliverables] < 0
+			    )
+			)
+			VAR Planned = SUMX ( Phases, Fact_ProjectPhase[Planned_Deliverables] )
+			VAR Actual = SUMX ( Phases, Fact_ProjectPhase[Actual_Deliverables] )
+			RETURN
+			    IF ( COUNTROWS ( Phases ) > 0 && InvalidRows = 0, DIVIDE ( Actual - Planned, Planned ) )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: 5803a62c-3a18-4d37-bc3b-afcba292e833
+		summarizeBy: none
+
+	column Project_Duration_Status =
+			
+			VAR VariancePct = Dim_Project[Project_Duration_Variance_Pct]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( VariancePct ), "Non évaluable",
+			        VariancePct >= 15 / 100, "Alerte",
+			        "Hors alerte"
+			    )
+		lineageTag: 549277a0-d8d8-4b6d-83d3-c31b396ac3e8
+		summarizeBy: none
+
+	column Project_Cost_Status =
+			
+			VAR VariancePct = Dim_Project[Project_Cost_Variance_Pct]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( VariancePct ), "Non évaluable",
+			        VariancePct >= 15 / 100, "Alerte",
+			        "Hors alerte"
+			    )
+		lineageTag: c750bbfa-4fef-4b3a-b0a6-5219b960ff87
+		summarizeBy: none
+
+	column Project_Deliverable_Status =
+			
+			VAR VariancePct = Dim_Project[Project_Deliverable_Variance_Pct]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( VariancePct ), "Non évaluable",
+			        VariancePct <= -15 / 100, "Alerte",
+			        "Hors alerte"
+			    )
+		lineageTag: af62c4d3-ce3f-4fe7-a131-c7259acd2c24
+		summarizeBy: none
+
+	column Project_Alert_Status =
+			
+			SWITCH (
+			    TRUE (),
+			    Dim_Project[Project_Duration_Status] = "Alerte"
+			        || Dim_Project[Project_Cost_Status] = "Alerte"
+			        || Dim_Project[Project_Deliverable_Status] = "Alerte",
+			        "Alerte",
+			
+			    Dim_Project[Project_Duration_Status] = "Non évaluable"
+			        || Dim_Project[Project_Cost_Status] = "Non évaluable"
+			        || Dim_Project[Project_Deliverable_Status] = "Non évaluable",
+			        "Non évaluable",
+			
+			    "Hors alerte"
+			)
+		lineageTag: 943caf15-1735-499a-a679-c44345b9b912
+		summarizeBy: none
+
+	column Country_Map_Legend =
+			
+			Dim_Project[Country]
+		lineageTag: ed6ee209-9d20-4b0e-b89d-c47126377880
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
 	partition Dim_Project = m
 		mode: import
 		source =

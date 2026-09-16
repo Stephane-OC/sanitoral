@@ -2,15 +2,22 @@ table _Measures
 	lineageTag: a73c7191-0693-4f1f-9026-9c37cb6bc7de
 
 	measure 'Total Projects' =
-			
-			DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] )
+			COALESCE (
+			    CALCULATE (
+			        DISTINCTCOUNT ( Dim_Project[Project_ID] ),
+			        KEEPFILTERS ( Dim_Project[Project_Phase_Count] > 0 ),
+			        KEEPFILTERS ( NOT ISBLANK ( Dim_Project[Project_ID] ) )
+			    ), 0
+			)
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: 5a968906-788b-4ce9-8a80-b8db4d57ded4
 
 	measure 'Total Phases' =
 			
 			DISTINCTCOUNT ( Fact_ProjectPhase[Project_Phase_Key] )
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: b992bda7-17e5-4579-9a8c-f9763cde0354
 
 	measure 'Planned Cost' =
@@ -145,38 +152,43 @@ table _Measures
 		lineageTag: 5fea718a-d992-46f4-b436-7cb048561195
 
 	measure 'Cost Alert Phases' =
-			
-			CALCULATE (
-			    [Total Phases],
-			    KEEPFILTERS ( Fact_ProjectPhase[Cost_Alert_Flag] = 1 )
+			COALESCE (
+			    CALCULATE (
+			        [Total Phases],
+			        KEEPFILTERS ( Fact_ProjectPhase[Cost_Alert_Flag] = 1 )
+			    ),
+			    0
 			)
 		formatString: 0
 		lineageTag: 2f5adecb-68df-4434-adb7-3869f736aa65
 
 	measure 'Duration Alert Phases' =
-			
+			COALESCE (
 			CALCULATE (
-			    [Total Phases],
-			    KEEPFILTERS ( Fact_ProjectPhase[Duration_Alert_Flag] = 1 )
-			)
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Duration_Alert_Flag] = 1 )
+						)
+			, 0 )
 		formatString: 0
 		lineageTag: 373aabf1-c742-46ff-be5e-a5a7c6bc7674
 
 	measure 'Deliverable Alert Phases' =
-			
+			COALESCE (
 			CALCULATE (
-			    [Total Phases],
-			    KEEPFILTERS ( Fact_ProjectPhase[Deliverable_Alert_Flag] = 1 )
-			)
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Deliverable_Alert_Flag] = 1 )
+						)
+			, 0 )
 		formatString: 0
 		lineageTag: a059ab98-6f1e-411d-b6bb-2031efbbe2f5
 
 	measure 'Alert Phases' =
-			
+			COALESCE (
 			CALCULATE (
-			    [Total Phases],
-			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Flag] = 1 )
-			)
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Alert_Flag] = 1 )
+						)
+			, 0 )
 		formatString: 0
 		lineageTag: bf9ca91d-13b7-45e1-9e79-9b9fee4f5069
 
@@ -187,78 +199,83 @@ table _Measures
 		lineageTag: 6938bb3b-5e16-45fd-9eb3-1855130dc427
 
 	measure 'Projects in Alert' =
-			
 			CALCULATE (
-			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Flag] = 1 )
+			    [Total Projects],
+			    KEEPFILTERS ( Dim_Project[Project_Duration_Status] = "Alerte" )
 			)
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: a0c94fec-8769-41bb-adb0-8ffaca5e4b90
 
 	measure 'Projects on Track' =
-			
-			[Total Projects] - [Projects in Alert]
+			CALCULATE (
+			    [Total Projects],
+			    KEEPFILTERS ( Dim_Project[Project_Duration_Status] = "Hors alerte" )
+			)
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: c6fc8180-4a7b-480a-913d-c52fd0f0075c
 
 	measure 'Alert Project Rate' =
-			
-			DIVIDE ( [Projects in Alert], [Total Projects] )
+			DIVIDE (
+			    [Projects in Alert],
+			    [Total Projects] - [Duration Unknown Projects]
+			)
 		formatString: 0.0\ %;-0.0\ %;0.0\ %
 		lineageTag: b994cc74-829d-4bc7-a63b-da5c3a253243
 
 	measure 'Projects with Cost Alert' =
-			
 			CALCULATE (
-			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-			    KEEPFILTERS ( Fact_ProjectPhase[Cost_Alert_Flag] = 1 )
+			    [Total Projects],
+			    KEEPFILTERS ( Dim_Project[Project_Cost_Status] = "Alerte" )
 			)
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: 43c4da22-a076-430b-bedc-ad63d9156467
 
-	measure 'Projects with Duration Alert' =
-			
-			CALCULATE (
-			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-			    KEEPFILTERS ( Fact_ProjectPhase[Duration_Alert_Flag] = 1 )
-			)
+	measure 'Projects with Duration Alert' = [Projects in Alert]
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: d0f2599e-25a4-42ce-a3ff-ad87d94c7091
 
 	measure 'Projects with Deliverable Alert' =
-			
 			CALCULATE (
-			    DISTINCTCOUNT ( Fact_ProjectPhase[Project_ID] ),
-			    KEEPFILTERS ( Fact_ProjectPhase[Deliverable_Alert_Flag] = 1 )
+			    [Total Projects],
+			    KEEPFILTERS ( Dim_Project[Project_Deliverable_Status] = "Alerte" )
 			)
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: 697c13a2-834b-4db9-a24a-2a8fe8e65b41
 
 	measure 'Critical Alert Phases' =
-			
+			COALESCE (
 			CALCULATE (
-			    [Total Phases],
-			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 3 )
-			)
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 3 )
+						)
+			, 0 )
 		formatString: 0
 		lineageTag: 6682a831-a42e-4c6b-9e3d-318fc6da6f2b
 
 	measure 'High Alert Phases' =
-			
+			COALESCE (
 			CALCULATE (
-			    [Total Phases],
-			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 2 )
-			)
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 2 )
+						)
+			, 0 )
 		formatString: 0
 		lineageTag: 5bb757b0-e918-4a89-9ba9-018ede3835aa
 
 	measure 'Watch Alert Phases' =
-			
+			COALESCE (
 			CALCULATE (
-			    [Total Phases],
-			    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 1 )
-			)
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Alert_Count] = 1 )
+						)
+			, 0 )
 		formatString: 0
+		displayFolder: Présentation
 		lineageTag: d4d22f0f-d405-4a1d-8f78-a7def695313e
 
 	measure 'Alert Color' =
@@ -273,16 +290,11 @@ table _Measures
 		lineageTag: 39e94ed0-e78f-476a-8186-644dac2250ac
 
 	measure 'Selected Scope' =
-			
-			VAR SelectedCountry = SELECTEDVALUE ( Dim_Project[Country] )
-			VAR SelectedRegion = SELECTEDVALUE ( Dim_Project[Region] )
-			RETURN
-			    SWITCH (
-			        TRUE (),
-			        NOT ISBLANK ( SelectedCountry ), "Pays : " & SelectedCountry,
-			        NOT ISBLANK ( SelectedRegion ), "Région : " & SelectedRegion,
-			        "Monde"
-			    )
+			VAR P = SELECTEDVALUE ( Dim_Project[Project_Label] )
+			VAR C = SELECTEDVALUE ( Dim_Project[Country] )
+			VAR R = SELECTEDVALUE ( Dim_Project[Region] )
+			RETURN SWITCH ( TRUE (), NOT ISBLANK ( P ), "Projet : " & P, NOT ISBLANK ( C ), "Pays : " & C, NOT ISBLANK ( R ), "Région : " & R, "Monde" )
+		displayFolder: Présentation
 		lineageTag: 4f3c101b-d26b-4182-b55c-ad156cfa9d1a
 
 	measure 'Visible Scope Level' =
@@ -293,11 +305,13 @@ table _Measures
 			    HASONEVALUE ( Dim_Project[Region] ), "Vue régionale",
 			    "Vue mondiale"
 			)
+		displayFolder: Présentation
 		lineageTag: 8febeea9-850d-4269-8ce4-2c39ef6041c5
 
 	measure 'Selected Project' =
 			
 			SELECTEDVALUE ( Dim_Project[Project_Label], "Tous les projets" )
+		displayFolder: Présentation
 		lineageTag: 273e3718-52a2-4f94-b3dd-7d91272e3d18
 
 	measure 'Data Period' =
@@ -315,17 +329,13 @@ table _Measures
 		lineageTag: 7235f528-7ed5-4367-b0c9-02c315cd81a8
 
 	measure 'Executive Narrative' =
-			
-			VAR ProjectCount = [Total Projects]
-			VAR AlertProjectCount = [Projects in Alert]
-			VAR AlertRate = [Alert Project Rate]
+			VAR Assessed = [Total Projects] - [Duration Unknown Projects]
 			RETURN
-			    FORMAT ( AlertProjectCount, "0" )
-			        & " projet(s) sur "
-			        & FORMAT ( ProjectCount, "0" )
-			        & " présentent au moins une phase en alerte, soit "
-			        & FORMAT ( AlertRate, "0.0 %" )
-			        & " du périmètre affiché."
+			    FORMAT ( [Projects in Alert], "0" ) & " projet(s) en alerte de durée cumulée sur "
+			        & FORMAT ( Assessed, "0" ) & " évaluables, soit "
+			        & FORMAT ( [Alert Project Rate], "0.0 %" ) & ". "
+			        & FORMAT ( [Overall Alert Projects], "0" )
+			        & " projet(s) présentent au moins un écart global défavorable de 15 % ou plus."
 		lineageTag: 694aa99a-0a37-43e2-9b41-cb188ecb5582
 
 	measure 'Performance Narrative' =
@@ -343,19 +353,552 @@ table _Measures
 		lineageTag: 45da29dc-9ba9-4ecd-b602-fcb47c64ced4
 
 	measure 'Selected Project Alert Summary' =
+			IF (
+			    [Project Detail Available] <> 1,
+			    "Sélectionnez un projet puis cliquez sur Voir le détail.",
+			    [Selected Project] & " : " & [Project Duration Status]
+			        & " sur la durée cumulée ("
+			        & FORMAT ( [Project Duration Variance %], "+0.0%;-0.0%;0.0%" ) & "). "
+			        & FORMAT ( [Duration Alert Phases], "0" )
+			        & " phase(s) atteignent le seuil de durée."
+			)
+		displayFolder: Présentation
+		lineageTag: 5493dd39-61e2-47fe-974e-5145c74a158c
+
+	measure 'Late Phases' =
+			COALESCE (
+			CALCULATE (
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] > 0 )
+						)
+			, 0 )
+		formatString: 0
+		lineageTag: 9950dc57-6f12-4de0-be18-f43c2a2872fa
+
+	measure 'Early Phases' =
+			COALESCE (
+			CALCULATE (
+						    [Total Phases],
+						    KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0 )
+						)
+			, 0 )
+		formatString: 0
+		lineageTag: be7127a1-4613-4516-9cd3-75ee44ad0f4c
+
+	measure 'On Time Deadline Phases' =
+			CALCULATE (
+			    [Total Phases],
+			    KEEPFILTERS (
+			        FILTER (
+			            Fact_ProjectPhase,
+			            NOT ISBLANK ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] )
+			                && Fact_ProjectPhase[Deadline_Variance_Days_Phase] == 0
+			        )
+			    )
+			)
+		formatString: 0
+		lineageTag: 6598336b-130a-4a6d-9b78-c0dc1a46dff9
+
+	measure 'Late Phase Rate' =
+			
+			DIVIDE ( [Late Phases], [Total Phases] )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: aab20972-f36f-4ce5-919f-025644417247
+
+	measure 'Average Delay Days' =
+			
+			AVERAGEX (
+			    FILTER (
+			        Fact_ProjectPhase,
+			        Fact_ProjectPhase[Deadline_Variance_Days_Phase] > 0
+			    ),
+			    Fact_ProjectPhase[Deadline_Variance_Days_Phase]
+			)
+		formatString: 0.0
+		lineageTag: 7191b254-f560-4e2e-8d0a-adf99717c859
+
+	measure 'Average Advance Days' =
+			
+			AVERAGEX (
+			    FILTER (
+			        Fact_ProjectPhase,
+			        Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0
+			    ),
+			    ABS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] )
+			)
+		formatString: 0.0
+		lineageTag: c35ff9cf-2980-475c-aee5-5d8e40711013
+
+	measure 'Delay Exposure Days' =
+			
+			DIVIDE (
+			    CALCULATE (
+			        SUM ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] ),
+			        KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] > 0 )
+			    ),
+			    [Total Phases]
+			)
+		formatString: 0.0
+		lineageTag: 2117f072-53fa-40a2-83f7-f2dea4de321b
+
+	measure 'Advance Exposure Days' =
+			
+			DIVIDE (
+			    - CALCULATE (
+			        SUM ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] ),
+			        KEEPFILTERS ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] < 0 )
+			    ),
+			    [Total Phases]
+			)
+		formatString: 0.0
+		lineageTag: bd52eb64-40a3-4147-b506-af150647fd7b
+
+	measure 'Country Late Phases' =
+			
+			CALCULATE (
+			    [Late Phases],
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0
+		lineageTag: bddd8512-abfd-419c-9135-a30a4a744951
+
+	measure 'Country Early Phases' =
+			
+			CALCULATE (
+			    [Early Phases],
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0
+		lineageTag: f5cd66b5-04ee-4afb-b8f1-f62275563ec1
+
+	measure 'Country Late Phase Rate' =
+			
+			CALCULATE (
+			    [Late Phase Rate],
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: 07dcb0b1-6db2-4cf4-82d6-c5782e87af5f
+
+	measure 'Country Average Delay Days' =
+			
+			CALCULATE (
+			    [Average Delay Days],
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0.0
+		lineageTag: d373aa4d-c1a2-41a3-b79e-feb62a43d176
+
+	measure 'Country Average Advance Days' =
+			
+			CALCULATE (
+			    [Average Advance Days],
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0.0
+		lineageTag: e55cc233-34ef-4e7d-b659-04f3040e2740
+
+	measure 'Country Delay Exposure Days' =
+			
+			CALCULATE (
+			    [Delay Exposure Days],
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0.0
+		lineageTag: db9aab07-d593-474b-bd74-9e4322f32949
+
+	measure 'Country Advance Exposure Days' =
+			
+			CALCULATE (
+			    [Advance Exposure Days],
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0.0
+		lineageTag: 0e7da5ef-a5f1-41ba-8844-3a541f55bc34
+
+	measure 'Countries Analyzed' =
+			
+			CALCULATE (
+			    DISTINCTCOUNT ( Dim_Project[Country] ),
+			    REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			)
+		formatString: 0
+		lineageTag: 7c9736b5-0857-4e06-91a2-b4a48aca1bed
+
+	measure 'Most Delayed Country' =
+			
+			VAR CountriesInScope =
+			    CALCULATETABLE (
+			        VALUES ( Dim_Project[Country] ),
+			        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			    )
+			VAR RankedCountries =
+			    TOPN (
+			        1,
+			        ADDCOLUMNS (
+			            CountriesInScope,
+			            "@Exposure", [Country Delay Exposure Days]
+			        ),
+			        [@Exposure], DESC,
+			        Dim_Project[Country], ASC
+			    )
+			RETURN
+			    CONCATENATEX (
+			        RankedCountries,
+			        Dim_Project[Country] & " • " & FORMAT ( [@Exposure], "0.0" ) & " j"
+			    )
+		lineageTag: 834cd9c8-e390-427a-817c-8265242a2f35
+
+	measure 'Most Advanced Country' =
+			
+			VAR CountriesInScope =
+			    CALCULATETABLE (
+			        VALUES ( Dim_Project[Country] ),
+			        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			    )
+			VAR RankedCountries =
+			    TOPN (
+			        1,
+			        ADDCOLUMNS (
+			            CountriesInScope,
+			            "@Exposure", [Country Advance Exposure Days]
+			        ),
+			        [@Exposure], DESC,
+			        Dim_Project[Country], ASC
+			    )
+			RETURN
+			    CONCATENATEX (
+			        RankedCountries,
+			        Dim_Project[Country] & " • " & FORMAT ( [@Exposure], "0.0" ) & " j"
+			    )
+		lineageTag: 279ba45f-0de9-49c6-bfff-59e646f80765
+
+	measure 'Selected Project Context' =
 			
 			VAR ProjectName = [Selected Project]
-			VAR PhaseAlertCount = [Alert Phases]
+			VAR CountryName = SELECTEDVALUE ( Dim_Project[Country] )
+			VAR RegionName = SELECTEDVALUE ( Dim_Project[Region] )
+			VAR ProjectType = SELECTEDVALUE ( Dim_Project[Project_Type] )
 			RETURN
 			    IF (
 			        ProjectName = "Tous les projets",
-			        "Sélectionnez un projet pour afficher le détail de ses phases.",
-			        ProjectName
-			            & " possède "
-			            & FORMAT ( PhaseAlertCount, "0" )
-			            & " phase(s) en alerte."
+			        "Sélectionnez un projet dans la liste",
+			        ProjectName & " • " & CountryName & " • " & RegionName & " • " & ProjectType
 			    )
-		lineageTag: 5493dd39-61e2-47fe-974e-5145c74a158c
+		displayFolder: Présentation
+		lineageTag: 1b5c42e3-096f-419c-8375-d83206c7088d
+
+	measure 'Selected Project Detail Narrative' =
+			IF (
+			    [Project Detail Available] <> 1,
+			    "Ouvrez cette page avec Voir le détail depuis une ligne de projet.",
+			    [Selected Project] & " (" & SELECTEDVALUE ( Dim_Project[Country] ) & ") : "
+			        & [Project Duration Status] & " sur la durée cumulée, écart "
+			        & FORMAT ( [Project Duration Variance %], "+0.0%;-0.0%;0.0%" ) & ". "
+			        & FORMAT ( [Duration Alert Phases], "0" )
+			        & " phase(s) atteignent le seuil ; les autres phases peuvent compenser leur retard."
+			)
+		displayFolder: Présentation
+		lineageTag: 8dd3478e-5b82-4e24-9c31-b876c7c7c741
+
+	measure 'Selected Country Delay Rank' =
+			
+			VAR SelectedCountry = SELECTEDVALUE ( Dim_Project[Country] )
+			VAR CountriesInScope =
+			    CALCULATETABLE (
+			        VALUES ( Dim_Project[Country] ),
+			        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] )
+			    )
+			VAR CurrentExposure =
+			    CALCULATE (
+			        [Country Delay Exposure Days],
+			        REMOVEFILTERS ( Dim_Project[Project_ID], Dim_Project[Project_Label] ),
+			        Dim_Project[Country] = SelectedCountry
+			    )
+			RETURN
+			    IF (
+			        ISBLANK ( SelectedCountry ),
+			        BLANK (),
+			        RANKX (
+			            CountriesInScope,
+			            [Country Delay Exposure Days],
+			            CurrentExposure,
+			            DESC,
+			            DENSE
+			        )
+			    )
+		formatString: 0
+		displayFolder: Présentation
+		lineageTag: 819cd583-62b4-4460-b8d2-b00c38585ed7
+
+	measure 'Selected Country Rank Label' =
+			
+			VAR CountryName = SELECTEDVALUE ( Dim_Project[Country] )
+			VAR CountryRank = [Selected Country Delay Rank]
+			RETURN
+			    IF (
+			        ISBLANK ( CountryName ),
+			        "Sélectionnez un projet",
+			        CountryName
+			            & " • rang retard "
+			            & FORMAT ( CountryRank, "0" )
+			            & " / "
+			            & FORMAT ( [Countries Analyzed], "0" )
+			    )
+		displayFolder: Présentation
+		lineageTag: 37812d76-471e-41dc-bb42-4480aadeb7c2
+
+	measure 'Duration Unknown Projects' = CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Duration_Status] = "Non évaluable" ) )
+		formatString: 0
+		lineageTag: 043de207-ec03-4ca6-8df2-284c0fa66df3
+
+	measure 'Overall Alert Projects' = CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Alert_Status] = "Alerte" ) )
+		formatString: 0
+		lineageTag: 79662f89-1caa-4fcf-9f63-c072fb1683a8
+
+	measure 'Overall On Track Projects' = CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Alert_Status] = "Hors alerte" ) )
+		formatString: 0
+		lineageTag: 3d15b819-2e96-49ea-8368-8f7ab90dc0af
+
+	measure 'Overall Unknown Projects' = CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Alert_Status] = "Non évaluable" ) )
+		formatString: 0
+		lineageTag: b65b7147-4f6d-4dfa-b6d9-beea01e1cfbc
+
+	measure 'Overall Alert Project Rate' = DIVIDE ( [Overall Alert Projects], [Overall Alert Projects] + [Overall On Track Projects] )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: d9fdc894-44eb-4033-bbe7-a29d0aec91cd
+
+	measure 'Project Duration Variance %' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Duration_Variance_Pct] ) )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		displayFolder: Présentation
+		lineageTag: 4faf13f4-2629-438a-aa4f-dc896e1e4354
+
+	measure 'Project Cost Variance %' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Cost_Variance_Pct] ) )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		displayFolder: Présentation
+		lineageTag: 0e973bdf-3d79-45a9-9949-a182518f2064
+
+	measure 'Project Deliverable Variance %' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Deliverable_Variance_Pct] ) )
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		displayFolder: Présentation
+		lineageTag: cf1b05fc-3895-42f8-896f-55308b3b975e
+
+	measure 'Project Duration Status' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Duration_Status] ) )
+		displayFolder: Présentation
+		lineageTag: 982aa1c7-b5eb-4a42-8e6c-a2e0253229c1
+
+	measure 'Project Cost Status' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Cost_Status] ) )
+		displayFolder: Présentation
+		lineageTag: e1655a2c-1ae2-4f36-b729-f7d781fb64bf
+
+	measure 'Project Deliverable Status' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Deliverable_Status] ) )
+		displayFolder: Présentation
+		lineageTag: 5284cdfc-2155-460b-96b2-20a5ac11b095
+
+	measure 'Project Overall Status' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Alert_Status] ) )
+		displayFolder: Présentation
+		lineageTag: 34c1dc9b-b9e0-4f33-8d9d-f3b69c76d793
+
+	measure 'Project Duration Color' = SWITCH ( [Project Duration Status], "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+		displayFolder: Présentation
+		lineageTag: 9b02e548-9a48-47a5-ab86-a496889851cc
+
+	measure 'Project Cost Color' = SWITCH ( [Project Cost Status], "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+		displayFolder: Présentation
+		lineageTag: 42963e5f-a5f9-4b32-b11f-f98f18f67ea3
+
+	measure 'Project Deliverable Color' = SWITCH ( [Project Deliverable Status], "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+		displayFolder: Présentation
+		lineageTag: 8bbfd42e-e469-4b2f-b8cf-84954d1622ba
+
+	measure 'Country Duration Status' =
+			SWITCH ( TRUE (),
+			    [Total Projects] = 0, BLANK (),
+			    [Projects in Alert] > 0, "Au moins un projet en alerte de durée",
+			    [Duration Unknown Projects] > 0, "Données incomplètes",
+			    "Aucun projet en alerte de durée"
+			)
+		lineageTag: 82b450c9-e00d-4e55-b716-59490fa34fc6
+
+	measure 'Country Duration Color' =
+			SWITCH ( TRUE (),
+			    [Total Projects] = 0, "#94A3B8",
+			    [Projects in Alert] > 0, "#FB7185",
+			    [Duration Unknown Projects] > 0, "#94A3B8",
+			    "#34D399"
+			)
+		lineageTag: ed54be8c-7547-4ded-a6aa-68baf417bfb3
+
+	measure 'Portfolio Countries' =
+			COALESCE ( COUNTROWS (
+			    FILTER ( VALUES ( Dim_Project[Country] ),
+			        NOT ISBLANK ( Dim_Project[Country] ) && [Total Projects] > 0
+			    )
+			), 0 )
+		formatString: 0
+		lineageTag: 6fedbca3-95ca-46a6-a89f-93911fe8f73b
+
+	measure 'Max Project Duration Variance %' =
+			MAXX (
+			    FILTER ( VALUES ( Dim_Project[Project_ID] ), [Total Projects] > 0 ),
+			    [Project Duration Variance %]
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: ee40d267-cf24-4b2f-9af0-61da2896c5d9
+
+	measure 'Project Detail Available' =
+			
+			IF (
+			    HASONEVALUE ( Dim_Project[Project_ID] )
+			        && [Total Projects] = 1,
+			    1,
+			    0
+			)
+		formatString: 0
+		displayFolder: Présentation
+		lineageTag: 94c57198-d63e-4e21-b12b-6d681c1b73da
+
+	measure 'Project Detail Instruction' =
+			IF ( [Project Detail Available] = 1,
+			    "Voir les phases du projet sélectionné",
+			    "Sélectionnez un seul projet puis cliquez sur Voir le détail."
+			)
+		displayFolder: Présentation
+		lineageTag: a1b7b128-d9fb-46a7-8946-b49cbb2fca44
+
+	measure 'Detail Planned Cost' =
+			
+			IF (
+			    [Project Detail Available] = 1,
+			    COALESCE ( [Planned Cost], 0 )
+			)
+		formatString: #,0
+		displayFolder: Pilotage
+		lineageTag: 1f400f43-7c3c-49e3-bd88-a460261e7fcf
+
+	measure 'Detail Project Context' = IF ( [Project Detail Available] = 1, [Selected Project] & "   •   " & SELECTEDVALUE ( Dim_Project[Country] ) & "   •   " & SELECTEDVALUE ( Dim_Project[Region] ) & "   •   " & SELECTEDVALUE ( Dim_Project[Project_Type] ), "Sélectionnez un projet dans la liste, ou ouvrez sa fiche depuis un tableau." )
+		displayFolder: Pilotage
+		lineageTag: b5816e99-ce88-4820-9b99-a6b4234ca4a9
+
+	measure 'Detail Actual Cost' = IF ( [Project Detail Available] = 1, COALESCE ( [Actual Cost], 0 ) )
+		formatString: #,0
+		displayFolder: Pilotage
+		lineageTag: dd418694-f16c-4d98-93ff-c575da0e32a4
+
+	measure 'Detail Planned Duration' = IF ( [Project Detail Available] = 1, COALESCE ( [Planned Duration], 0 ) )
+		formatString: 0" j"
+		displayFolder: Pilotage
+		lineageTag: fa3efe9f-feb3-4acd-9fee-910d411bd7bb
+
+	measure 'Detail Actual Duration' = IF ( [Project Detail Available] = 1, COALESCE ( [Actual Duration], 0 ) )
+		formatString: 0" j"
+		displayFolder: Pilotage
+		lineageTag: 3f5b9cba-fe5c-4ea9-af3f-ed5f0e6b724b
+
+	measure 'Detail Late Phases' = IF ( [Project Detail Available] = 1, COALESCE ( [Late Phases], 0 ) )
+		formatString: 0
+		displayFolder: Pilotage
+		lineageTag: 9480d940-7920-4421-adee-d60312a0aec9
+
+	measure 'Detail Summary' =
+			IF ( [Project Detail Available] <> 1,
+			"La fiche reste vide tant qu’un seul projet n’est pas sélectionné.",
+			FORMAT ( COALESCE ( [Late Phases], 0 ), "0" ) & " phases avec une fin décalée (> 0 j), dont " & FORMAT ( COALESCE ( [Duration Alert Phases], 0 ), "0" ) & " atteignent +15 % de durée. " & FORMAT ( [Actual Deliverables], "#,0" ) & " livrables réalisés pour " & FORMAT ( [Planned Deliverables], "#,0" ) & " prévus. Les avances peuvent compenser les retards dans le cumul du projet." )
+		displayFolder: Pilotage
+		lineageTag: 13befff4-f562-4906-9509-8ed7555f1da1
+
+	measure 'Detail Deadline Summary' =
+			IF ( [Project Detail Available] = 1,
+			"Début : " & FORMAT ( [Project Start], "dd/MM/yyyy" ) & "   •   Fin prévue : " & FORMAT ( [Project Planned Finish], "dd/MM/yyyy" ) & "   •   Fin calculée : " & FORMAT ( [Project Calculated Finish], "dd/MM/yyyy" ) & "   •   Décalage : " & FORMAT ( [Project Finish Variance Days], "+0;-0;0" ) & " j",
+			"Une seule sélection est nécessaire pour afficher les échéances et les phases." )
+		displayFolder: Pilotage
+		lineageTag: 8b33d19c-228b-41e1-81e8-78655adc06a5
+
+	measure 'Detail Country Rank' =
+			VAR C = SELECTEDVALUE ( Dim_Project[Country] )
+			VAR Countries = CALCULATETABLE ( VALUES ( Dim_Project[Country] ), REMOVEFILTERS ( Dim_Project ), REMOVEFILTERS ( Dim_Date ) )
+			VAR Scores = ADDCOLUMNS ( Countries, "@Score", VAR CC = Dim_Project[Country] RETURN CALCULATE ( [Delay Exposure Days], REMOVEFILTERS ( Dim_Project ), REMOVEFILTERS ( Dim_Date ), TREATAS ( { CC }, Dim_Project[Country] ) ) )
+			VAR CurrentScore = MAXX ( FILTER ( Scores, Dim_Project[Country] = C ), [@Score] )
+			RETURN IF ( [Project Detail Available] = 1 && NOT ISBLANK ( CurrentScore ), C & " : " & FORMAT ( RANKX ( FILTER ( Scores, NOT ISBLANK ( [@Score] ) ), [@Score], CurrentScore, DESC, DENSE ), "0" ) & " / " & FORMAT ( COUNTROWS ( FILTER ( Scores, NOT ISBLANK ( [@Score] ) ) ), "0" ) )
+		displayFolder: Pilotage
+		lineageTag: 764a70af-c8d4-48c7-ac20-83df0a2addfc
+
+	measure 'Detail Deliverables Summary' = IF ( [Project Detail Available] = 1, FORMAT ( [Actual Deliverables], "#,0" ) & " / " & FORMAT ( [Planned Deliverables], "#,0" ) & " livrables réalisés / prévus", "Aucun projet sélectionné" )
+		displayFolder: Pilotage
+		lineageTag: fbf46394-cde0-4fcb-ab87-338ce64fb86b
+
+	measure 'Project Start' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Start_Date] ) )
+		formatString: dd/MM/yyyy
+		displayFolder: Pilotage
+		lineageTag: 49b1a96b-383e-4686-94ce-49992c261fd6
+
+	measure 'Project Planned Finish' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Planned_End_Date] ) )
+		formatString: dd/MM/yyyy
+		displayFolder: Pilotage
+		lineageTag: 7a3edb03-7292-4cf0-95d7-0ee19a811c55
+
+	measure 'Project Finish Variance Days' = VAR P = [Project Planned Finish] VAR A = [Project Calculated Finish] RETURN IF ( NOT ISBLANK ( P ) && NOT ISBLANK ( A ), DATEDIFF ( P, A, DAY ) )
+		formatString: +0;-0;0
+		displayFolder: Pilotage
+		lineageTag: a59cbcdd-9623-4024-a43c-fba7539e2987
+
+	measure 'Project Calculated Finish' = IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Actual_End_Date_Derived] ) )
+		formatString: dd/MM/yyyy
+		displayFolder: Pilotage
+		lineageTag: 7dbc8f70-14e4-4c67-bf1c-637d94c7faa4
+
+	measure 'Planning Last Finish' = MAX ( Dim_Project[Project_Planned_End_Date] )
+		formatString: dd/MM/yyyy
+		displayFolder: Pilotage
+		lineageTag: d84763a2-9b7c-4eb2-9a28-a3b1bb15f616
+
+	measure 'Planning First Start' = MIN ( Dim_Project[Project_Start_Date] )
+		formatString: dd/MM/yyyy
+		displayFolder: Pilotage
+		lineageTag: f3426a04-4d32-4a06-83cc-bf1adf0b0116
+
+	measure 'Planning Summary' = FORMAT ( [Total Projects], "0" ) & " projets dans le périmètre • " & FORMAT ( [Projects in Alert], "0" ) & " en alerte de durée cumulée. Sélectionnez une barre ou une ligne, puis ouvrez la fiche projet."
+		displayFolder: Pilotage
+		lineageTag: a837dbb7-43ea-46a2-8b01-e81776ed189d
+
+	measure 'Alert Page Summary' = FORMAT ( [Overall Alert Projects], "0" ) & " projets avec au moins une alerte cumulée. " & FORMAT ( COALESCE ( [Alert Phases], 0 ), "0" ) & " phases en alerte dans la période affichée. Une phase peut cumuler plusieurs types d’alerte."
+		displayFolder: Pilotage
+		lineageTag: 41cbb945-b39d-4c25-963f-1b9aa5636b86
+
+	measure 'Detail Actual Deliverables' = IF ( [Project Detail Available] = 1, COALESCE ( [Actual Deliverables], 0 ) )
+		formatString: 0
+		displayFolder: Pilotage
+		lineageTag: ac3e2239-8f0a-4de8-ae5b-3ef24bee03fc
+
+	measure 'Phase Cost Color' = SWITCH ( SELECTEDVALUE ( Fact_ProjectPhase[Phase_Cost_Status] ), "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+		displayFolder: Pilotage
+		lineageTag: d6ab2787-d114-44be-9582-848c1645fd9a
+
+	measure 'Phase Deliverable Color' = SWITCH ( SELECTEDVALUE ( Fact_ProjectPhase[Phase_Deliverable_Status] ), "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+		displayFolder: Pilotage
+		lineageTag: 12af385f-334c-42ad-8c84-81d465ddeb56
+
+	measure 'Phase Duration Color' = SWITCH ( SELECTEDVALUE ( Fact_ProjectPhase[Phase_Duration_Status] ), "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+		displayFolder: Pilotage
+		lineageTag: 09b073c9-de8c-4a1f-9217-91a9689aaa6b
+
+	measure 'Phase Severity Color' = SWITCH ( SELECTEDVALUE ( Fact_ProjectPhase[Alert_Severity] ), "Critique", "#FB7185", "Élevée", "#FBBF24", "À surveiller", "#38CFE0", "Conforme", "#34D399", "#94A3B8" )
+		displayFolder: Pilotage
+		lineageTag: 147b8270-0602-4cad-af2f-ab4f0da6fb17
+
+	measure 'Portfolio Cost Color' = VAR V = [Cost Variance %] RETURN SWITCH ( TRUE (), ISBLANK ( V ), "#94A3B8", V >= 0.15, "#FB7185", "#34D399" )
+		displayFolder: Pilotage
+		lineageTag: e9b293f1-2339-40c7-b841-3be2d546a08c
+
+	measure 'Detail Duration Alert Phases' = IF ( [Project Detail Available] = 1, COALESCE ( [Duration Alert Phases], 0 ) )
+		formatString: 0
+		displayFolder: Pilotage
+		lineageTag: 017f880d-8077-5e6e-82a3-4cf6efe5f200
+
+	measure 'Detail Planned Deliverables' = IF ( [Project Detail Available] = 1, COALESCE ( [Planned Deliverables], 0 ) )
+		formatString: 0
+		displayFolder: Pilotage
+		lineageTag: b74bb2a1-cfd1-517b-8f14-d5cec379b883
 
 	column _Placeholder
 		isHidden

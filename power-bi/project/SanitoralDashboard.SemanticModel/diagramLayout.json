@@ -29,10 +29,10 @@
           "nodeIndex": "Dim_Project",
           "nodeLineageTag": "6352d983-1b64-42d7-b3df-5d6a6aae9262",
           "size": {
-            "height": 224,
+            "height": 573.46996466431085,
             "width": 234
           },
-          "zIndex": 1
+          "zIndex": 3
         },
         {
           "location": {
@@ -45,12 +45,12 @@
             "height": 610.99999999999966,
             "width": 234
           },
-          "zIndex": 4
+          "zIndex": 1
         },
         {
           "location": {
-            "x": 906.9928269599,
-            "y": 0
+            "x": 948.98340410948765,
+            "y": 31.154299175500597
           },
           "nodeIndex": "_Measures",
           "nodeLineageTag": "a73c7191-0693-4f1f-9026-9c37cb6bc7de",
@@ -58,7 +58,7 @@
             "height": 1000,
             "width": 234
           },
-          "zIndex": 3
+          "zIndex": 4
         }
       ],
       "name": "Toutes les tables",

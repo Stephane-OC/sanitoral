@@ -1,0 +1,421 @@
+createOrReplace
+
+  ref table Dim_Project
+
+    column Project_Phase_Count =
+            VAR ProjectId = Dim_Project[Project_ID]
+            RETURN
+                COUNTROWS (
+                    FILTER (
+                        ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID] ),
+                        Fact_ProjectPhase[Project_ID] = ProjectId
+                    )
+                )
+        formatString: 0
+        summarizeBy: none
+
+    column Project_Start_Date =
+            VAR ProjectId = Dim_Project[Project_ID]
+            VAR Phases = FILTER (
+                ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID], Fact_ProjectPhase[Start_Date] ),
+                Fact_ProjectPhase[Project_ID] = ProjectId
+            )
+            RETURN
+                IF (
+                    COUNTROWS ( Phases ) > 0
+                        && COUNTROWS ( FILTER ( Phases, ISBLANK ( Fact_ProjectPhase[Start_Date] ) ) ) = 0,
+                    MINX ( Phases, Fact_ProjectPhase[Start_Date] )
+                )
+        formatString: yyyy-MM-dd
+        summarizeBy: none
+
+    column Project_Planned_End_Date =
+            VAR ProjectId = Dim_Project[Project_ID]
+            VAR Phases = FILTER (
+                ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID], Fact_ProjectPhase[Planned_End_Date] ),
+                Fact_ProjectPhase[Project_ID] = ProjectId
+            )
+            RETURN
+                IF (
+                    COUNTROWS ( Phases ) > 0
+                        && COUNTROWS ( FILTER ( Phases, ISBLANK ( Fact_ProjectPhase[Planned_End_Date] ) ) ) = 0,
+                    MAXX ( Phases, Fact_ProjectPhase[Planned_End_Date] )
+                )
+        formatString: yyyy-MM-dd
+        summarizeBy: none
+
+    column Project_Actual_End_Date_Derived =
+            VAR ProjectId = Dim_Project[Project_ID]
+            VAR Phases = FILTER (
+                ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID], Fact_ProjectPhase[Actual_End_Date] ),
+                Fact_ProjectPhase[Project_ID] = ProjectId
+            )
+            RETURN
+                IF (
+                    COUNTROWS ( Phases ) > 0
+                        && COUNTROWS ( FILTER ( Phases, ISBLANK ( Fact_ProjectPhase[Actual_End_Date] ) ) ) = 0,
+                    MAXX ( Phases, Fact_ProjectPhase[Actual_End_Date] )
+                )
+        formatString: yyyy-MM-dd
+        summarizeBy: none
+
+    column Project_Planned_Span_Days =
+            VAR StartDate = Dim_Project[Project_Start_Date]
+            VAR EndDate = Dim_Project[Project_Planned_End_Date]
+            RETURN
+                IF (
+                    NOT ISBLANK ( StartDate ) && NOT ISBLANK ( EndDate ) && EndDate >= StartDate,
+                    DATEDIFF ( StartDate, EndDate, DAY )
+                )
+        formatString: 0
+        summarizeBy: none
+
+    column Project_Start_Month =
+            VAR StartDate = Dim_Project[Project_Start_Date]
+            RETURN
+                IF ( NOT ISBLANK ( StartDate ), DATE ( YEAR ( StartDate ), MONTH ( StartDate ), 1 ) )
+        formatString: yyyy-MM
+        summarizeBy: none
+
+    column Project_Duration_Variance_Pct =
+            VAR ProjectId = Dim_Project[Project_ID]
+            VAR Phases = FILTER (
+                ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID],
+                    Fact_ProjectPhase[Planned_Duration], Fact_ProjectPhase[Actual_Duration] ),
+                Fact_ProjectPhase[Project_ID] = ProjectId
+            )
+            VAR InvalidRows = COUNTROWS (
+                FILTER ( Phases,
+                    ISBLANK ( Fact_ProjectPhase[Planned_Duration] )
+                        || Fact_ProjectPhase[Planned_Duration] <= 0
+                        || ISBLANK ( Fact_ProjectPhase[Actual_Duration] )
+                        || Fact_ProjectPhase[Actual_Duration] < 0
+                )
+            )
+            VAR Planned = SUMX ( Phases, Fact_ProjectPhase[Planned_Duration] )
+            VAR Actual = SUMX ( Phases, Fact_ProjectPhase[Actual_Duration] )
+            RETURN
+                IF ( COUNTROWS ( Phases ) > 0 && InvalidRows = 0, DIVIDE ( Actual - Planned, Planned ) )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+        summarizeBy: none
+
+    column Project_Cost_Variance_Pct =
+            VAR ProjectId = Dim_Project[Project_ID]
+            VAR Phases = FILTER (
+                ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID],
+                    Fact_ProjectPhase[Planned_Cost], Fact_ProjectPhase[Actual_Cost] ),
+                Fact_ProjectPhase[Project_ID] = ProjectId
+            )
+            VAR InvalidRows = COUNTROWS (
+                FILTER ( Phases,
+                    ISBLANK ( Fact_ProjectPhase[Planned_Cost] )
+                        || Fact_ProjectPhase[Planned_Cost] <= 0
+                        || ISBLANK ( Fact_ProjectPhase[Actual_Cost] )
+                        || Fact_ProjectPhase[Actual_Cost] < 0
+                )
+            )
+            VAR Planned = SUMX ( Phases, Fact_ProjectPhase[Planned_Cost] )
+            VAR Actual = SUMX ( Phases, Fact_ProjectPhase[Actual_Cost] )
+            RETURN
+                IF ( COUNTROWS ( Phases ) > 0 && InvalidRows = 0, DIVIDE ( Actual - Planned, Planned ) )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+        summarizeBy: none
+
+    column Project_Deliverable_Variance_Pct =
+            VAR ProjectId = Dim_Project[Project_ID]
+            VAR Phases = FILTER (
+                ALL ( Fact_ProjectPhase[Project_Phase_Key], Fact_ProjectPhase[Project_ID],
+                    Fact_ProjectPhase[Planned_Deliverables], Fact_ProjectPhase[Actual_Deliverables] ),
+                Fact_ProjectPhase[Project_ID] = ProjectId
+            )
+            VAR InvalidRows = COUNTROWS (
+                FILTER ( Phases,
+                    ISBLANK ( Fact_ProjectPhase[Planned_Deliverables] )
+                        || Fact_ProjectPhase[Planned_Deliverables] <= 0
+                        || ISBLANK ( Fact_ProjectPhase[Actual_Deliverables] )
+                        || Fact_ProjectPhase[Actual_Deliverables] < 0
+                )
+            )
+            VAR Planned = SUMX ( Phases, Fact_ProjectPhase[Planned_Deliverables] )
+            VAR Actual = SUMX ( Phases, Fact_ProjectPhase[Actual_Deliverables] )
+            RETURN
+                IF ( COUNTROWS ( Phases ) > 0 && InvalidRows = 0, DIVIDE ( Actual - Planned, Planned ) )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+        summarizeBy: none
+
+    column Project_Duration_Status =
+            VAR Variance = Dim_Project[Project_Duration_Variance_Pct]
+            RETURN
+                SWITCH ( TRUE (),
+                    ISBLANK ( Variance ), "Non évaluable",
+                    Variance >= 15 / 100, "Alerte",
+                    "Hors alerte"
+                )
+        summarizeBy: none
+
+    column Project_Cost_Status =
+            VAR Variance = Dim_Project[Project_Cost_Variance_Pct]
+            RETURN
+                SWITCH ( TRUE (),
+                    ISBLANK ( Variance ), "Non évaluable",
+                    Variance >= 15 / 100, "Alerte",
+                    "Hors alerte"
+                )
+        summarizeBy: none
+
+    column Project_Deliverable_Status =
+            VAR Variance = Dim_Project[Project_Deliverable_Variance_Pct]
+            RETURN
+                SWITCH ( TRUE (),
+                    ISBLANK ( Variance ), "Non évaluable",
+                    Variance <= -15 / 100, "Alerte",
+                    "Hors alerte"
+                )
+        summarizeBy: none
+
+    column Project_Alert_Status =
+            SWITCH ( TRUE (),
+                Dim_Project[Project_Duration_Status] = "Alerte"
+                    || Dim_Project[Project_Cost_Status] = "Alerte"
+                    || Dim_Project[Project_Deliverable_Status] = "Alerte", "Alerte",
+                Dim_Project[Project_Duration_Status] = "Non évaluable"
+                    || Dim_Project[Project_Cost_Status] = "Non évaluable"
+                    || Dim_Project[Project_Deliverable_Status] = "Non évaluable", "Non évaluable",
+                "Hors alerte"
+            )
+        summarizeBy: none
+
+  ref table Fact_ProjectPhase
+
+    column Phase_Duration_Status =
+            VAR Planned = Fact_ProjectPhase[Planned_Duration]
+            VAR Actual = Fact_ProjectPhase[Actual_Duration]
+            RETURN
+                SWITCH ( TRUE (),
+                    ISBLANK ( Planned ) || Planned <= 0 || ISBLANK ( Actual ) || Actual < 0, "Non évaluable",
+                    DIVIDE ( Actual - Planned, Planned ) >= 15 / 100, "Alerte",
+                    "Hors alerte"
+                )
+        summarizeBy: none
+
+    column Phase_Cost_Status =
+            VAR Planned = Fact_ProjectPhase[Planned_Cost]
+            VAR Actual = Fact_ProjectPhase[Actual_Cost]
+            RETURN
+                SWITCH ( TRUE (),
+                    ISBLANK ( Planned ) || Planned <= 0 || ISBLANK ( Actual ) || Actual < 0, "Non évaluable",
+                    DIVIDE ( Actual - Planned, Planned ) >= 15 / 100, "Alerte",
+                    "Hors alerte"
+                )
+        summarizeBy: none
+
+    column Phase_Deliverable_Status =
+            VAR Planned = Fact_ProjectPhase[Planned_Deliverables]
+            VAR Actual = Fact_ProjectPhase[Actual_Deliverables]
+            RETURN
+                SWITCH ( TRUE (),
+                    ISBLANK ( Planned ) || Planned <= 0 || ISBLANK ( Actual ) || Actual < 0, "Non évaluable",
+                    DIVIDE ( Actual - Planned, Planned ) <= -15 / 100, "Alerte",
+                    "Hors alerte"
+                )
+        summarizeBy: none
+
+  ref table _Measures
+
+    measure 'Total Projects' =
+            COALESCE (
+                CALCULATE (
+                    DISTINCTCOUNT ( Dim_Project[Project_ID] ),
+                    KEEPFILTERS ( Dim_Project[Project_Phase_Count] > 0 ),
+                    KEEPFILTERS ( NOT ISBLANK ( Dim_Project[Project_ID] ) )
+                ), 0
+            )
+        formatString: 0
+        lineageTag: 5a968906-788b-4ce9-8a80-b8db4d57ded4
+
+    measure 'Projects in Alert' =
+            CALCULATE (
+                [Total Projects],
+                KEEPFILTERS ( Dim_Project[Project_Duration_Status] = "Alerte" )
+            )
+        formatString: 0
+        lineageTag: a0c94fec-8769-41bb-adb0-8ffaca5e4b90
+
+    measure 'Projects on Track' =
+            CALCULATE (
+                [Total Projects],
+                KEEPFILTERS ( Dim_Project[Project_Duration_Status] = "Hors alerte" )
+            )
+        formatString: 0
+        lineageTag: c6fc8180-4a7b-480a-913d-c52fd0f0075c
+
+    measure 'Alert Project Rate' =
+            DIVIDE (
+                [Projects in Alert],
+                [Total Projects] - [Duration Unknown Projects]
+            )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+        lineageTag: b994cc74-829d-4bc7-a63b-da5c3a253243
+
+    measure 'Projects with Cost Alert' =
+            CALCULATE (
+                [Total Projects],
+                KEEPFILTERS ( Dim_Project[Project_Cost_Status] = "Alerte" )
+            )
+        formatString: 0
+        lineageTag: 43c4da22-a076-430b-bedc-ad63d9156467
+
+    measure 'Projects with Duration Alert' =
+            [Projects in Alert]
+        formatString: 0
+        lineageTag: d0f2599e-25a4-42ce-a3ff-ad87d94c7091
+
+    measure 'Projects with Deliverable Alert' =
+            CALCULATE (
+                [Total Projects],
+                KEEPFILTERS ( Dim_Project[Project_Deliverable_Status] = "Alerte" )
+            )
+        formatString: 0
+        lineageTag: 697c13a2-834b-4db9-a24a-2a8fe8e65b41
+
+    measure 'Executive Narrative' =
+            VAR Assessed = [Total Projects] - [Duration Unknown Projects]
+            RETURN
+                FORMAT ( [Projects in Alert], "0" ) & " projet(s) en alerte de durée cumulée sur "
+                    & FORMAT ( Assessed, "0" ) & " évaluables, soit "
+                    & FORMAT ( [Alert Project Rate], "0.0 %" ) & ". "
+                    & FORMAT ( [Overall Alert Projects], "0" )
+                    & " projet(s) présentent au moins un écart global défavorable de 15 % ou plus."
+        lineageTag: 694aa99a-0a37-43e2-9b41-cb188ecb5582
+
+    measure 'Selected Project Alert Summary' =
+            IF (
+                [Project Detail Available] <> 1,
+                "Sélectionnez un projet puis cliquez sur Voir le détail.",
+                [Selected Project] & " : " & [Project Duration Status]
+                    & " sur la durée cumulée ("
+                    & FORMAT ( [Project Duration Variance %], "+0.0%;-0.0%;0.0%" ) & "). "
+                    & FORMAT ( [Duration Alert Phases], "0" )
+                    & " phase(s) atteignent le seuil de durée."
+            )
+        lineageTag: 5493dd39-61e2-47fe-974e-5145c74a158c
+
+    measure 'Selected Project Detail Narrative' =
+            IF (
+                [Project Detail Available] <> 1,
+                "Ouvrez cette page avec Voir le détail depuis une ligne de projet.",
+                [Selected Project] & " (" & SELECTEDVALUE ( Dim_Project[Country] ) & ") : "
+                    & [Project Duration Status] & " sur la durée cumulée, écart "
+                    & FORMAT ( [Project Duration Variance %], "+0.0%;-0.0%;0.0%" ) & ". "
+                    & FORMAT ( [Duration Alert Phases], "0" )
+                    & " phase(s) atteignent le seuil ; les autres phases peuvent compenser leur retard."
+            )
+        lineageTag: 8dd3478e-5b82-4e24-9c31-b876c7c7c741
+
+    measure 'On Time Deadline Phases' =
+            CALCULATE (
+                [Total Phases],
+                KEEPFILTERS (
+                    FILTER (
+                        Fact_ProjectPhase,
+                        NOT ISBLANK ( Fact_ProjectPhase[Deadline_Variance_Days_Phase] )
+                            && Fact_ProjectPhase[Deadline_Variance_Days_Phase] == 0
+                    )
+                )
+            )
+        formatString: 0
+        lineageTag: 6598336b-130a-4a6d-9b78-c0dc1a46dff9
+
+    measure 'Duration Unknown Projects' =
+            CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Duration_Status] = "Non évaluable" ) )
+        formatString: 0
+
+    measure 'Overall Alert Projects' =
+            CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Alert_Status] = "Alerte" ) )
+        formatString: 0
+
+    measure 'Overall On Track Projects' =
+            CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Alert_Status] = "Hors alerte" ) )
+        formatString: 0
+
+    measure 'Overall Unknown Projects' =
+            CALCULATE ( [Total Projects], KEEPFILTERS ( Dim_Project[Project_Alert_Status] = "Non évaluable" ) )
+        formatString: 0
+
+    measure 'Overall Alert Project Rate' =
+            DIVIDE ( [Overall Alert Projects], [Overall Alert Projects] + [Overall On Track Projects] )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+
+    measure 'Project Duration Variance %' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Duration_Variance_Pct] ) )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+
+    measure 'Project Cost Variance %' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Cost_Variance_Pct] ) )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+
+    measure 'Project Deliverable Variance %' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Deliverable_Variance_Pct] ) )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+
+    measure 'Project Duration Status' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Duration_Status] ) )
+
+    measure 'Project Cost Status' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Cost_Status] ) )
+
+    measure 'Project Deliverable Status' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Deliverable_Status] ) )
+
+    measure 'Project Overall Status' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ), SELECTEDVALUE ( Dim_Project[Project_Alert_Status] ) )
+
+    measure 'Project Duration Color' =
+            SWITCH ( [Project Duration Status], "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+
+    measure 'Project Cost Color' =
+            SWITCH ( [Project Cost Status], "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+
+    measure 'Project Deliverable Color' =
+            SWITCH ( [Project Deliverable Status], "Alerte", "#FB7185", "Hors alerte", "#34D399", "#94A3B8" )
+
+    measure 'Country Duration Status' =
+            SWITCH ( TRUE (),
+                [Total Projects] = 0, BLANK (),
+                [Projects in Alert] > 0, "Au moins un projet en alerte de durée",
+                [Duration Unknown Projects] > 0, "Données incomplètes",
+                "Aucun projet en alerte de durée"
+            )
+
+    measure 'Country Duration Color' =
+            SWITCH ( TRUE (),
+                [Total Projects] = 0, "#94A3B8",
+                [Projects in Alert] > 0, "#FB7185",
+                [Duration Unknown Projects] > 0, "#94A3B8",
+                "#34D399"
+            )
+
+    measure 'Portfolio Countries' =
+            COALESCE ( COUNTROWS (
+                FILTER ( VALUES ( Dim_Project[Country] ),
+                    NOT ISBLANK ( Dim_Project[Country] ) && [Total Projects] > 0
+                )
+            ), 0 )
+        formatString: 0
+
+    measure 'Max Project Duration Variance %' =
+            MAXX (
+                FILTER ( VALUES ( Dim_Project[Project_ID] ), [Total Projects] > 0 ),
+                [Project Duration Variance %]
+            )
+        formatString: 0.0\ %;-0.0\ %;0.0\ %
+
+    measure 'Project Detail Available' =
+            IF ( HASONEVALUE ( Dim_Project[Project_ID] ) && [Total Projects] = 1, 1, 0 )
+        formatString: 0
+
+    measure 'Project Detail Instruction' =
+            IF ( [Project Detail Available] = 1,
+                "Voir les phases du projet sélectionné",
+                "Sélectionnez un seul projet puis cliquez sur Voir le détail."
+            )

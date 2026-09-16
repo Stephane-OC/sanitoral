@@ -9,7 +9,7 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 
-annotation PBI_ProTooling = ["DevMode"]
+annotation PBI_ProTooling = ["DevMode","TMDLView_Desktop"]
 
 annotation PBI_QueryOrder = ["pDataFilePath","src_SanitoralWorkbook","fxNormalizeProjectId","stg_ProjectPlans","stg_ActualCosts","stg_ActualDuration","stg_ActualDeliverables","stg_ProjectType","stg_ProjectLocations","stg_CountryProfiles","Fact_ProjectPhase","Dim_Project","Dim_Date"]
 

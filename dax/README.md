@@ -11,11 +11,11 @@ Les fichiers `.dax` servent à lire, versionner et reproduire les formules. Powe
 | Table | Rôle | Grain / relation |
 |---|---|---|
 | `Fact_ProjectPhase` | Table de faits : coûts, durées, livrables, dates et alertes | Une ligne par projet et phase, clé `Project_Phase_Key` |
-| `Dim_Project` | Dimension des projets, géographie et types ; indicateurs cumulés du projet | Une ligne par `Project_ID` ; côté 1 de la relation vers `Fact_ProjectPhase[Project_ID]` |
-| `Dim_Date` | Dimension calendrier | Une ligne par date ; côté 1 de la relation vers `Fact_ProjectPhase[Start_Date]` |
+| `Dim_Project` | Dimension des projets, géographie et types. indicateurs cumulés du projet | Une ligne par `Project_ID` côté 1 de la relation vers `Fact_ProjectPhase[Project_ID]` |
+| `Dim_Date` | Dimension calendrier | Une ligne par date. côté 1 de la relation vers `Fact_ProjectPhase[Start_Date]` |
 | `_Measures` | Conteneur technique des mesures | Sans relation, colonne `_Placeholder` masquée |
 
-Les dimensions filtrent la table de faits. Cette organisation est un modèle en étoile avec deux dimensions ; un nombre imposé de cinq tables ne constitue pas une condition pour former une étoile. Les colonnes Région, Pays et Type décrivent ici le projet dans `Dim_Project`.
+Les dimensions filtrent la table de faits. Cette organisation est un modèle en étoile avec deux dimensions. Un nombre imposé de cinq tables ne constitue pas une condition pour former une étoile. Les colonnes Région, Pays et Type décrivent ici le projet dans `Dim_Project`.
 
 La préparation Power Query, les colonnes importées et les relations doivent exister avant la création des formules. Ce pack ne remplace pas les requêtes Power Query. La date `Actual_End_Date` provient du calcul de préparation des données : début de phase + durée réalisée. Le rapport l’intitule **Fin calculée**.
 
@@ -34,15 +34,16 @@ La préparation Power Query, les colonnes importées et les relations doivent ex
 | `08_Project_Calculated_Columns.dax` | 14 colonnes | Cumul de toutes les phases, dates du projet et légende cartographique |
 | `09_Project_Level_Measures.dax` | 21 mesures | Statuts et écarts cumulés, synthèse pays, contrôle de sélection |
 | `10_Presentation_Measures.dax` | 26 mesures | Couleurs, calendrier, contexte et indicateurs de la fiche projet |
+| `11_Portfolio_Summary_Measures.dax` | 2 mesures | Couleurs des écarts consolidés de durée et de livrables |
 
 ### Dossiers d’affichage « Présentation » et « Pilotage »
 
-Toutes les mesures restent dans **la même table `_Measures`**. Deux dossiers d’affichage organisent les mesures : **Présentation** contient 28 mesures de synthèse, statuts et contexte ; **Pilotage** contient 26 mesures de détail, planning et couleurs. Les 58 autres mesures restent à la racine de `_Measures`. Le dossier `Pilotage` regroupe les mesures du fichier `10_Presentation_Measures.dax` ; le nom du fichier indique leur fonction et ne fixe pas leur dossier dans Power BI. Ces dossiers ne créent ni table de données supplémentaire ni relation.
+Toutes les mesures restent dans **la même table `_Measures`**. Deux dossiers d’affichage organisent les mesures : **Présentation** contient 28 mesures de synthèse, statuts et contexte. **Pilotage** contient 26 mesures de détail, planning et couleurs. Les 58 autres mesures restent à la racine de `_Measures`. Le dossier `Pilotage` regroupe les mesures du fichier `10_Presentation_Measures.dax` et les 2 mesures du fichier `11_Portfolio_Summary_Measures.dax`. Le nom du fichier indique leur fonction et ne fixe pas leur dossier dans Power BI. Ces dossiers ne créent ni table de données supplémentaire ni relation.
 
 - `Phase … Color`, `Phase Severity Color` et `Portfolio Cost Color` renvoient une couleur utilisable par la mise en forme conditionnelle.
 - `Project Start`, `Project Planned Finish`, `Project Calculated Finish` et `Project Finish Variance Days` présentent les dates et le décalage du projet sélectionné.
 - `Planning First Start` et `Planning Last Finish` affichent les bornes du planning dans le périmètre filtré.
-- Les mesures `Detail Planned …`, `Detail Actual …`, `Detail Late Phases` et `Detail Duration Alert Phases` conditionnent l’affichage des cartes à la sélection d’un seul projet ; elles réutilisent les mesures de base.
+- Les mesures `Detail Planned …`, `Detail Actual …`, `Detail Late Phases` et `Detail Duration Alert Phases` conditionnent l’affichage des cartes à la sélection d’un seul projet. Elles réutilisent les mesures de base.
 - `Detail Country Rank` calcule un classement du pays sur le périmètre mondial accessible, indépendamment du filtre du projet sélectionné.
 - Les mesures de contexte et de synthèse produisent des textes adaptés à la sélection : `Detail Project Context`, `Detail Deadline Summary`, `Detail Deliverables Summary`, `Detail Summary`, `Alert Page Summary` et `Planning Summary`.
 
@@ -52,25 +53,25 @@ Les libellés français d’une vignette ou d’une colonne peuvent différer du
 
 ### Phases et projets
 
-Les colonnes de `Fact_ProjectPhase` évaluent chaque phase. Les colonnes calculées de `Dim_Project` agrègent toutes les phases d’un projet au chargement du modèle. Les pourcentages cumulés sont calculés à partir des sommes ; ce ne sont pas des moyennes des pourcentages de phase.
+Les colonnes de `Fact_ProjectPhase` évaluent chaque phase. Les colonnes calculées de `Dim_Project` agrègent toutes les phases d’un projet au chargement du modèle. Les pourcentages cumulés sont calculés à partir des sommes. Ce ne sont pas des moyennes des pourcentages de phase.
 
 - Durée / coût : `(réalisé − prévu) / prévu`. Alerte dès **+15 %**.
 - Livrables : `(réalisé − prévu) / prévu`. Alerte dès **−15 %**.
-- `Projects in Alert` compte les projets en **alerte de durée cumulée** ; `Alert Project Rate` rapporte ce nombre aux projets évaluables en durée : `[Total Projects] − [Duration Unknown Projects]`.
+- `Projects in Alert` compte les projets en **alerte de durée cumulée**. `Alert Project Rate` rapporte ce nombre aux projets évaluables en durée : `[Total Projects] − [Duration Unknown Projects]`.
 - `Overall Alert Projects` compte les projets présentant au moins un critère cumulé en alerte (durée, coût ou livrables).
-- `Projects on Track` correspond au statut de durée « Hors alerte ». `Duration Unknown Projects` conserve les cas non évaluables ; ils ne sont pas automatiquement considérés conformes.
-- `Late Phases` compte les phases dont la fin calculée dépasse la fin prévue de plus de zéro jour ; `Duration Alert Phases` applique le seuil relatif de +15 %. Ces indicateurs répondent à des questions différentes.
+- `Projects on Track` correspond au statut de durée « Hors alerte ». `Duration Unknown Projects` conserve les cas non évaluables. Ils ne sont pas automatiquement considérés conformes.
+- `Late Phases` compte les phases dont la fin calculée dépasse la fin prévue de plus de zéro jour. `Duration Alert Phases` applique le seuil relatif de +15 %. Ces indicateurs répondent à des questions différentes.
 - `Alert_Count` vaut 0, 1, 2 ou 3 selon le nombre de critères de phase en alerte. `Alert_Severity` donne Conforme, À surveiller, Élevée ou Critique. Une phase peut cumuler plusieurs types d’alerte : les comptages par type ne doivent pas être additionnés pour obtenir un nombre de phases distinctes.
 
-« Hors alerte » signifie que le seuil n’est pas atteint ; cela peut inclure un petit dépassement. Les contrôles de valeurs absentes et de dénominateurs non positifs sont définis dans les formules. Les comptages explicitement entourés de `COALESCE` affichent zéro lorsque leur résultat est vide ; les indicateurs non évaluables peuvent rester vides.
+« Hors alerte » signifie que le seuil n’est pas atteint Cela peut inclure un petit dépassement. Les contrôles de valeurs absentes et de dénominateurs non positifs sont définis dans les formules. Les comptages explicitement entourés de `COALESCE` affichent zéro lorsque leur résultat est vide. Les indicateurs non évaluables peuvent rester vides.
 
 ### Planning et filtres
 
 La barre du Gantt projet va du premier début à la dernière fin prévue. Cette étendue calendaire diffère de la somme des durées lorsque les phases se chevauchent. La dernière fin calculée n’est pas une date de clôture saisie. Aucun taux d’avancement temporel n’est déduit arbitrairement de ces données.
 
-Le filtre de date de **Vue d’ensemble** et **Planning et Gantt** porte sur le début des projets. Celui d’**Analyse des alertes** porte sur le début des phases. Les statuts cumulés des projets restent évalués sur leur cycle complet. L’évolution mensuelle regroupe les phases par mois de début ; elle ne constitue pas un historique de leurs statuts successifs.
+Le filtre de date de **Vue d’ensemble** et **Planning et Gantt** porte sur le début des projets. Celui d’**Analyse des alertes** porte sur le début des phases. Les statuts cumulés des projets restent évalués sur leur cycle complet. L’évolution mensuelle regroupe les phases par mois de début. Elle ne constitue pas un historique de leurs statuts successifs.
 
-L’extraction vers **Détail projet** transmet le projet et conserve l’accès à toutes ses phases. Les indicateurs du détail sont protégés par la sélection d’un seul projet. Les mesures de rang mondial retirent les filtres analytiques prévus par leur formule ; elles ne contournent pas la sécurité RLS.
+L’extraction vers **Détail projet** transmet le projet et conserve l’accès à toutes ses phases. Les indicateurs du détail sont protégés par la sélection d’un seul projet. Les mesures de rang mondial retirent les filtres analytiques prévus par leur formule. Elles ne contournent pas la sécurité RLS.
 
 ### Couleurs
 
@@ -96,13 +97,13 @@ Les mesures contenant `REMOVEFILTERS`, `CALCULATE`, `HASONEVALUE` ou `SELECTEDVA
 
 Les formules de ce pack correspondent aux définitions TMDL du projet fourni, sans renommage des mesures existantes. La vérification des fichiers ne remplace pas l’exécution dans Power BI Desktop.
 
-Avec les données et captures de référence, sans filtre, les repères sont **104 projets**, **8 alertes de durée cumulée**, environ **7,7 %** de projets en alerte de durée et **159 phases en alerte de durée**. Ces nombres servent à vérifier le rapport ; ils ne sont pas écrits dans les formules des indicateurs.
+Avec les données et captures de référence, sans filtre, les repères sont **104 projets**, **8 alertes de durée cumulée**, environ **7,7 %** de projets en alerte de durée et **159 phases en alerte de durée**. Ces nombres servent à vérifier le rapport. Ils ne sont pas écrits dans les formules des indicateurs.
 
 Tester également un pays avec plusieurs projets, l’extraction d’un seul projet, les phases hors alerte, les cas non évaluables et les rôles RLS.
 
 ## Catalogue des mesures
 
-Le format est celui enregistré dans le modèle ; « Général / texte » signifie qu’aucun format explicite n’est défini. Les noms ci-dessous sont les noms techniques exacts.
+Le format est celui enregistré dans le modèle. "Général / texte" signifie qu’aucun format explicite n’est défini. Les noms ci-dessous sont les noms techniques exacts.
 
 ### 02_Portfolio_Measures.dax
 
@@ -412,6 +413,8 @@ Cet ordre respecte les dépendances entre les 112 mesures. Le fichier associé p
 | 110 | `Selected Country Delay Rank` | `07_Detail_And_Country_Performance.dax` |
 | 111 | `Portfolio Cost Color` | `10_Presentation_Measures.dax` |
 | 112 | `Selected Country Rank Label` | `07_Detail_And_Country_Performance.dax` |
+| 113 | `Portfolio Duration Color` | `11_Portfolio_Summary_Measures.dax` |
+| 114 | `Portfolio Deliverable Color` | `11_Portfolio_Summary_Measures.dax` |
 
 ## Références
 

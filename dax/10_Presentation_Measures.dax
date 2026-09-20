@@ -23,44 +23,62 @@ IF (
 
 
 Detail Actual Cost =
-IF ([Project Detail Available] = 1, COALESCE (
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
         [Actual Cost],
         0
-    ))
+    )
+)
 
 
 Detail Planned Duration =
-IF ([Project Detail Available] = 1, COALESCE (
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
         [Planned Duration],
         0
-    ))
+    )
+)
 
 
 Detail Actual Duration =
-IF ([Project Detail Available] = 1, COALESCE (
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
         [Actual Duration],
         0
-    ))
+    )
+)
 
 
 Detail Late Phases =
-IF ([Project Detail Available] = 1, COALESCE (
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
         [Late Phases],
         0
-    ))
+    )
+)
 
 
 Detail Summary =
 IF (
     [Project Detail Available] <> 1,
     "La fiche reste vide tant qu’un seul projet n’est pas sélectionné.",
-    FORMAT (COALESCE (
+    FORMAT (
+        COALESCE (
             [Late Phases],
             0
-        ), "0") & " phases avec une fin décalée ( > 0 j), dont " & FORMAT (COALESCE (
+        ),
+        "0"
+    ) & " phases avec une fin décalée ( > 0 j), dont " & FORMAT (
+        COALESCE (
             [Duration Alert Phases],
             0
-        ), "0") & " atteignent +15 % de durée. " & FORMAT ([Actual Deliverables], "#,0") & " livrables réalisés pour " & FORMAT ([Planned Deliverables], "#,0") & " prévus. Les avances peuvent compenser les retards dans le cumul du projet."
+        ),
+        "0"
+    ) & " atteignent +15 % de durée. " & FORMAT ([Actual Deliverables], "#,0") & " livrables réalisés pour " & FORMAT ([Planned Deliverables], "#,0") & " prévus. Les avances peuvent compenser les retards dans le cumul du projet."
 )
 
 
@@ -100,11 +118,14 @@ RETURN
     )
 )
 VAR CurrentScore =
-    MAXX (FILTER (
+    MAXX (
+        FILTER (
             Scores,
             Dim_Project[Country] =
             C
-        ), [@Score])
+        ),
+        [@Score]
+    )
 RETURN
     IF (
         [Project Detail Available] = 1 && NOT ISBLANK (CurrentScore),
@@ -120,12 +141,15 @@ RETURN
                 DENSE
             ),
             "0"
-        ) & " / " & FORMAT (COUNTROWS (
+        ) & " / " & FORMAT (
+            COUNTROWS (
                 FILTER (
                     Scores,
                     NOT ISBLANK ([@Score])
                 )
-            ), "0")
+            ),
+            "0"
+        )
     )
 
 
@@ -155,11 +179,14 @@ Project Finish Variance Days =
 VAR P = [Project Planned Finish]
 VAR A = [Project Calculated Finish]
 RETURN
-    IF (NOT ISBLANK (P) && NOT ISBLANK (A), DATEDIFF (
+    IF (
+        NOT ISBLANK (P) && NOT ISBLANK (A),
+        DATEDIFF (
             P,
             A,
             DAY
-        ))
+        )
+    )
 
 
 Project Calculated Finish =
@@ -182,17 +209,23 @@ FORMAT ([Total Projects], "0") & " projets dans le périmètre • " & FORMAT ([
 
 
 Alert Page Summary =
-FORMAT ([Overall Alert Projects], "0") & " projets avec au moins une alerte cumulée. " & FORMAT (COALESCE (
+FORMAT ([Overall Alert Projects], "0") & " projets avec au moins une alerte cumulée. " & FORMAT (
+    COALESCE (
         [Alert Phases],
         0
-    ), "0") & " phases en alerte dans la période affichée. Une phase peut cumuler plusieurs types d’alerte."
+    ),
+    "0"
+) & " phases en alerte dans la période affichée. Une phase peut cumuler plusieurs types d’alerte."
 
 
 Detail Actual Deliverables =
-IF ([Project Detail Available] = 1, COALESCE (
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
         [Actual Deliverables],
         0
-    ))
+    )
+)
 
 
 Phase Cost Color =
@@ -250,14 +283,20 @@ RETURN
 
 
 Detail Duration Alert Phases =
-IF ([Project Detail Available] = 1, COALESCE (
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
         [Duration Alert Phases],
         0
-    ))
+    )
+)
 
 
 Detail Planned Deliverables =
-IF ([Project Detail Available] = 1, COALESCE (
+IF (
+    [Project Detail Available] = 1,
+    COALESCE (
         [Planned Deliverables],
         0
-    ))
+    )
+)

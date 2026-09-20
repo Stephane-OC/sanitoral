@@ -1,0 +1,31 @@
+// ============================================================================
+// MESURES : Couleurs de synthèse du portefeuille
+// TABLE   : _Measures
+// OBJECTIF: Harmoniser les indicateurs consolidés avec les seuils de 15 %
+// ============================================================================
+
+
+Portfolio Duration Color =
+VAR DurationVariance = [Duration Variance %]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (DurationVariance),
+        "#94A3B8",
+        DurationVariance >= 0.15,
+        "#FB7185",
+        "#34D399"
+    )
+
+
+Portfolio Deliverable Color =
+VAR DeliverableVariance = [Deliverable Variance %]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK (DeliverableVariance),
+        "#94A3B8",
+        DeliverableVariance <= -0.15,
+        "#FB7185",
+        "#34D399"
+    )

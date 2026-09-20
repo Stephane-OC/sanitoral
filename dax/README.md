@@ -2,7 +2,7 @@
 
 ![Sanitoral banner](../assets/images/sanitoral_banner.png)
 
-Ce pack documente les formules du modèle sémantique Sanitoral : **112 mesures**, **13 colonnes calculées de phase**, **14 colonnes calculées de projet**, la table technique `_Measures` et trois rôles RLS de démonstration. Les noms correspondent aux objets du projet Power BI fourni.
+Ce pack documente les formules du modèle sémantique Sanitoral : **112 mesures**, **13 colonnes calculées de phase**, **14 colonnes calculées de projet**, la table technique `_Measures` et trois rôles RLS de démonstration.
 
 Les fichiers `.dax` servent à lire, versionner et reproduire les formules. Power BI ne les importe pas automatiquement. Dans le projet `.pbip`, les définitions actives sont les fichiers `.tmdl` du dossier `SanitoralDashboard.SemanticModel/definition`.
 

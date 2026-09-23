@@ -1,11 +1,11 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainerMobileState/2.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainerMobileState/2.7.0/schema.json",
   "position": {
     "x": 0,
     "y": 674,
     "z": 2000,
-    "width": 323,
     "height": 270,
+    "width": 323,
     "tabOrder": 16
   },
   "objects": {
@@ -34,7 +34,11 @@
           }
         }
       }
-    ]
+    ],
+    "rowHeaders": [],
+    "grid": [],
+    "subTotals": [],
+    "columnWidth": []
   },
   "visualContainerObjects": {
     "padding": [
@@ -97,6 +101,11 @@
           }
         }
       }
-    ]
+    ],
+    "background": [],
+    "subTitle": [],
+    "border": [],
+    "dropShadow": [],
+    "visualHeader": []
   }
 }

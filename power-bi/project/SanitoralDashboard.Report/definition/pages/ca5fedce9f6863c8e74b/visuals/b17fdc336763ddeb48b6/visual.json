@@ -4,10 +4,10 @@
   "position": {
     "x": 304,
     "y": 618,
-    "z": 11000,
+    "z": 12000,
     "height": 314,
     "width": 784,
-    "tabOrder": 27000
+    "tabOrder": 28000
   },
   "visual": {
     "visualType": "lineChart",
@@ -381,7 +381,7 @@
             "alignment": {
               "expr": {
                 "Literal": {
-                  "Value": "'center'"
+                  "Value": "'left'"
                 }
               }
             },

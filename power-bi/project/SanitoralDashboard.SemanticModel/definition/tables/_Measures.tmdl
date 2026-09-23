@@ -900,6 +900,14 @@ table _Measures
 		displayFolder: Pilotage
 		lineageTag: b74bb2a1-cfd1-517b-8f14-d5cec379b883
 
+	measure 'Portfolio Duration Color' = VAR V = [Duration Variance %] RETURN SWITCH ( TRUE (), ISBLANK ( V ), "#94A3B8", V >= 0.15, "#FB7185", "#34D399" )
+		displayFolder: Pilotage
+		lineageTag: 334c1608-2762-423e-aad0-5211a71b51d7
+
+	measure 'Portfolio Deliverable Color' = VAR V = [Deliverable Variance %] RETURN SWITCH ( TRUE (), ISBLANK ( V ), "#94A3B8", V <= -0.15, "#FB7185", "#34D399" )
+		displayFolder: Pilotage
+		lineageTag: 8b5df02d-7fa1-4431-a4ad-ff9da087c5d1
+
 	column _Placeholder
 		isHidden
 		formatString: 0

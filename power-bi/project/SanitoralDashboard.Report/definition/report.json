@@ -71,6 +71,31 @@
           "name": "Sanitoral_Dark38058159847365935.json",
           "path": "Sanitoral_Dark38058159847365935.json",
           "type": "CustomTheme"
+        },
+        {
+          "name": "sanitoral_logo.png",
+          "path": "sanitoral_logo.png",
+          "type": "Image"
+        },
+        {
+          "name": "Sanitoral_Modele_Capture.png",
+          "path": "Sanitoral_Modele_Capture.png",
+          "type": "Image"
+        },
+        {
+          "name": "Sanitoral_Modele_Donnees.png",
+          "path": "Sanitoral_Modele_Donnees.png",
+          "type": "Image"
+        },
+        {
+          "name": "Sanitoral_Preparation_Donnees.png",
+          "path": "Sanitoral_Preparation_Donnees.png",
+          "type": "Image"
+        },
+        {
+          "name": "Sanitoral_Product_Strategy_Canvas.png",
+          "path": "Sanitoral_Product_Strategy_Canvas.png",
+          "type": "Image"
         }
       ]
     }

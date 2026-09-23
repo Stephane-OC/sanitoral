@@ -3,11 +3,11 @@
   "name": "8052bac2007d454dc007",
   "position": {
     "x": 24,
-    "y": 482,
-    "z": 10000,
+    "y": 518,
+    "z": 11000,
     "height": 76,
     "width": 256,
-    "tabOrder": 25000
+    "tabOrder": 26000
   },
   "visual": {
     "visualType": "slicer",

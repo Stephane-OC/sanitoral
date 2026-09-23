@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "ba415d59c1eab4b0b0b5",
   "position": {
-    "x": 303.45642540620383,
-    "y": 752.96898079763662,
-    "z": 16000,
-    "height": 260.91580502215658,
-    "width": 1592.437223042836,
-    "tabOrder": 29000
+    "x": 304,
+    "y": 794,
+    "z": 17000,
+    "height": 208,
+    "width": 1592,
+    "tabOrder": 30000
   },
   "visual": {
     "visualType": "tableEx",
@@ -869,7 +869,7 @@
             "spaceAbovePlotArea": {
               "expr": {
                 "Literal": {
-                  "Value": "12D"
+                  "Value": "16D"
                 }
               }
             }
